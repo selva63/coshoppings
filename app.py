@@ -20,18 +20,14 @@ app = Flask(__name__)
 # For local development, you can set these in a .env file and use python-dotenv,
 # or set them directly in your shell. For Render, you'll set them in the dashboard.
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_very_secret_key_for_development_only')
-# IMPORTANT: 'a_very_secret_key_for_development_only' என்பது ஒரு fallback மதிப்பு.
-# ப்ரொடக்ஷனில், Render-ல் SECRET_KEY environment variable-ஐ நீங்கள் செட் செய்ய வேண்டும்.
-# இந்த fallback மதிப்பு லோக்கல் டெவலப்மென்ட்க்கு மட்டுமே.
+
 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-# --- இந்த வரிகளைத் திருத்தியுள்ளேன் ---
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME') # Environment variable-ன் பெயர் 'MAIL_USERNAME'
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD') # Environment variable-ன் பெயர் 'MAIL_PASSWORD'
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', os.environ.get('MAIL_USERNAME'))
-# Environment variable-ன் பெயர் 'MAIL_DEFAULT_SENDER'. அது இல்லையென்றால் MAIL_USERNAME-ஐப் பயன்படுத்தும்.
 
 # Initialize Flask-Mail
 mail = Mail(app)
