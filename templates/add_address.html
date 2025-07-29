@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block title %}Add New Address - CO Shopping{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-center min-h-[calc(100vh-150px)]">
+    <div class="bg-white rounded-xl shadow-lg p-8 md:p-10 w-full max-w-xl">
+        <h1 class="text-3xl font-extrabold text-gray-800 mb-6 text-center">Add New Shipping Address</h1>
+        
+        <form method="POST" action="{{ url_for('add_address', next=request.args.get('next')) }}"> {# Pass 'next' parameter #}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="mb-4">
+                    <label for="full_name" class="block text-gray-700 text-sm font-bold mb-2">Full Name:</label>
+                    <input type="text" id="full_name" name="full_name" required
+                           class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="phone_number" class="block text-gray-700 text-sm font-bold mb-2">Phone Number:</label>
+                    <input type="tel" id="phone_number" name="phone_number" required
+                           class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                           pattern="[0-9]{10}" title="Please enter a 10-digit mobile number." placeholder="10-digit number">
+                </div>
+
+                <div class="mb-4 md:col-span-2">
+                    <label for="address_line1" class="block text-gray-700 text-sm font-bold mb-2">Address Line 1 (Door No, Street):</label>
+                    <input type="text" id="address_line1" name="address_line1" required
+                           class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200">
+                </div>
+                   <div class="mb-4 md:col-span-2">
+                    <label for="address_line2" class="block text-gray-700 text-sm font-bold mb-2">Address Line 2 (Landmark, Optional):</label>
+                    <input type="text" id="address_line2" name="address_line2"
+                           class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200">
+                </div>
+
+                <div class="mb-4">
+                    <label for="zip_code" class="block text-gray-700 text-sm font-bold mb-2">Zip/Postal Code:</label>
+                    <input type="text" id="zip_code" name="zip_code" required
+                           class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                           maxlength="6" pattern="\d{6}" title="Please enter a 6-digit pincode.">
+                    <div id="pincode-error" class="text-red-500 text-xs mt-1"></div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="city" class="block text-gray-700 text-sm font-bold mb-2">City / Area:</label>
+                    <select id="city" name="city" required
+                            class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-gray-200" disabled>
+                        <option value="">Enter Zip Code First</option>
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="state" class="block text-gray-700 text-sm font-bold mb-2">State/Province:</label>
+                    <input type="text" id="state" name="state" required readonly
+                           class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-gray-200">
+                </div>
+
+                <div class="mb-4">
+                    <label for="country" class="block text-gray-700 text-sm font-bold mb-2">Country:</label>
+                    <input type="text" id="country" name="country" required readonly
+                           class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-gray-200">
+                </div>
+            </div>
+            <div class="mb-6 flex items-center">
+                <input type="checkbox" id="is_default" name="is_default" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                <label for="is_default" class="ml-2 block text-gray-900 text-sm">Set as default address</label>
+            </div>
+            <div class="flex items-center justify-between">
+                <button type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300 w-full">
+                    Add Address
+                </button>
+            </div>
+        </form>
+        <p class="text-center text-gray-600 text-sm mt-6">
+            {% if request.args.get('next') == 'buy_now_checkout' %}
+                <a href="{{ url_for('product_detail', product_id=session.get('buy_now_product', {}).get('id')) }}" class="text-blue-600 hover:underline font-semibold">← Back to Product</a>
+            {% elif request.args.get('next') == 'checkout' %}
+                <a href="{{ url_for('view_cart') }}" class="text-blue-600 hover:underline font-semibold">← Back to Cart</a>
+            {% else %}
+                <a href="{{ url_for('view_addresses') }}" class="text-blue-600 hover:underline font-semibold">← Back to Addresses</a>
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const zipCodeInput = document.getElementById('zip_code');
+    const citySelect = document.getElementById('city');
+    const stateInput = document.getElementById('state');
+    const countryInput = document.getElementById('country');
+    const pincodeError = document.getElementById('pincode-error');
+
+    zipCodeInput.addEventListener('input', function() {
+        const pincode = zipCodeInput.value;
+        pincodeError.textContent = ''; // Clear previous errors
+
+        if (pincode.length !== 6) {
+            citySelect.innerHTML = '<option value="">Enter Zip Code First</option>';
+            citySelect.disabled = true;
+            citySelect.classList.add('bg-gray-200');
+            stateInput.value = '';
+            countryInput.value = '';
+            return;
+        }
+
+        citySelect.innerHTML = '<option value="">Loading...</option>';
+        citySelect.disabled = true;
+        citySelect.classList.add('bg-gray-200');
+
+        fetch(`https://api.postalpincode.in/pincode/${pincode}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data[0].Status === 'Success') {
+                    const postOffices = data[0].PostOffice;
+                    
+                    citySelect.innerHTML = '';
+                    citySelect.innerHTML = '<option value="">-- Select your Area --</option>';
+
+                    postOffices.forEach(office => {
+                        let officeName = office.Name;
+                        if (officeName === 'Vyrichettipalayam') {
+                            officeName = 'Vairichettipalayam';
+                        }
+                        const option = document.createElement('option');
+                        option.value = officeName;
+                        option.textContent = officeName;
+                        citySelect.appendChild(option);
+                    });
+                    
+                    if (postOffices.length > 0) {
+                        stateInput.value = postOffices[0].State;
+                        countryInput.value = postOffices[0].Country;
+                    }
+
+                    citySelect.disabled = false;
+                    citySelect.classList.remove('bg-gray-200');
+
+                } else {
+                    pincodeError.textContent = 'Invalid Pincode. Please check.';
+                    citySelect.innerHTML = '<option value="">Invalid Zip Code</option>';
+                    stateInput.value = '';
+                    countryInput.value = '';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching pincode data:', error);
+                pincodeError.textContent = 'Could not fetch details. Check connection.';
+                citySelect.innerHTML = '<option value="">Error fetching data</option>';
+            });
+    });
+});
+</script>
+{% endblock %}

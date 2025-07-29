@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if delivery_boy and delivery_boy.id %}Edit Delivery Boy{% else %}Add Delivery Boy{% endif %} - Admin Panel{% endblock %}
+
+{% block content %}
+<h1 class="text-4xl font-extrabold text-gray-800 mb-8 text-center">{% if delivery_boy and delivery_boy.id %}Edit Delivery Boy{% else %}Add New Delivery Boy{% endif %}</h1>
+
+<div class="flex items-center justify-center min-h-[calc(100vh-250px)]">
+    <div class="bg-white rounded-xl shadow-lg p-8 md:p-10 w-full max-w-xl">
+        {# UPDATED: The condition now checks for delivery_boy.id to correctly distinguish between add and edit modes #}
+        <form method="POST" action="{% if delivery_boy and delivery_boy.id %}{{ url_for('admin_edit_delivery_boy', dboy_id=delivery_boy.id) }}{% else %}{{ url_for('admin_add_delivery_boy') }}{% endif %}">
+            <div class="mb-5">
+                <label for="name" class="block text-gray-700 text-sm font-bold mb-2">Delivery Boy Name:</label>
+                <input type="text" id="name" name="name" required
+                       class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                       value="{{ delivery_boy.name if delivery_boy else '' }}">
+            </div>
+            <div class="mb-5">
+                <label for="mobile_number" class="block text-gray-700 text-sm font-bold mb-2">Mobile Number:</label>
+                <input type="text" id="mobile_number" name="mobile_number" required
+                       class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                       value="{{ delivery_boy.mobile_number if delivery_boy else '' }}"
+                       pattern="[0-9]{10}" title="Please enter a 10-digit mobile number.">
+            </div>
+            <div class="mb-5">
+                <label for="whatsapp_mobile_number" class="block text-gray-700 text-sm font-bold mb-2">WhatsApp Mobile Number:</label>
+                <input type="text" id="whatsapp_mobile_number" name="whatsapp_mobile_number" required
+                       class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                       value="{{ delivery_boy.whatsapp_mobile_number if delivery_boy else '' }}"
+                       pattern="[0-9]{10}" title="Please enter a 10-digit WhatsApp mobile number.">
+            </div>
+            <div class="mb-5">
+                <label for="email" class="block text-gray-700 text-sm font-bold mb-2">Email Address:</label>
+                <input type="email" id="email" name="email" required
+                       class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                       value="{{ delivery_boy.email if delivery_boy else '' }}">
+            </div>
+            <div class="mb-6">
+                <label for="pincodes" class="block text-gray-700 text-sm font-bold mb-2">Working Area Pincodes (comma-separated):</label>
+                <input type="text" id="pincodes" name="pincodes"
+                       class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 {% if pincode_error %}border-red-500{% endif %}"
+                       value="{{ current_pincodes if current_pincodes else '' }}"
+                       placeholder="e.g., 621012, 621011, 621013">
+                <p class="text-xs text-gray-500 mt-1">Enter multiple pincodes separated by commas.</p>
+                
+                {% if pincode_error %}
+                    <p class="text-red-600 text-sm mt-2 font-semibold">{{ pincode_error }}</p>
+                {% endif %}
+            </div>
+            <div class="flex items-center justify-between">
+                <button type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300 w-full">
+                    {% if delivery_boy and delivery_boy.id %}Update Delivery Boy{% else %}Add Delivery Boy{% endif %}
+                </button>
+            </div>
+        </form>
+        <p class="text-center text-gray-600 text-sm mt-6">
+            <a href="{{ url_for('admin_delivery_boys') }}" class="text-blue-600 hover:underline font-semibold">← Back to Delivery Boy List</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

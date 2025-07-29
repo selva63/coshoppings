@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+
+{% block title %}Order #{{ order.id }} Details - CO Shopping{% endblock %}
+
+{% block content %}
+<h1 class="text-4xl font-extrabold text-gray-800 mb-8 text-center">Order Details #{{ order.id }}</h1>
+
+<div class="bg-white rounded-xl shadow-lg p-8 md:p-12 max-w-4xl mx-auto">
+    
+    {% if current_user.is_authenticated and (current_user.id == order.user_id or current_user.is_admin) and order.delivery_boy_name and order.status not in ['Cancelled', 'Pending'] %}
+        <div class="mb-6 p-4 bg-blue-100 text-blue-800 rounded-lg text-center">
+            <p class="font-semibold">Order has been taken by <span class="font-bold">{{ order.delivery_boy_name }}</span> and is now '{{ order.status }}'.</p>
+            <p class="text-sm mt-1">Contact: {{ order.delivery_boy_phone }}</p>
+        </div>
+    {% endif %}
+
+    {% if order.status == 'Cancelled' and order.cancellation_reason %}
+        <div class="mb-6 p-4 bg-red-100 text-red-800 rounded-lg text-center">
+            {# Check if it's a delivery boy cancellation with new format #}
+            {% if order.cancellation_reason.startswith('Cancelled by Delivery Boy::') %}
+                {% set parts = order.cancellation_reason.split('::') %}
+                <p class="font-semibold">This order was cancelled by <strong>{{ parts[1] }}</strong>.</p>
+                <p class="text-sm mt-1">Reason: {{ parts[3] }} | Contact: {{ parts[2] }}</p>
+            {% else %}
+                {# Fallback for customer cancellation or old format #}
+                <p class="font-semibold">This order was cancelled.</p>
+                <p class="text-sm mt-1">Reason: {{ order.cancellation_reason }}</p>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% if current_user.is_authenticated and (current_user.id == order.user_id or current_user.is_admin) and order.status == 'Pending' and order.cancellation_reason and order.cancellation_reason.startswith('Left by Delivery Boy::') %}
+        {% set parts = order.cancellation_reason.split('::') %}
+        <div class="mb-6 p-4 bg-yellow-100 text-yellow-800 rounded-lg text-center">
+            <p class="font-semibold">Delivery partner <strong>{{ parts[1] }}</strong> left this order.</p>
+            <p class="text-sm mt-1">Reason: {{ parts[3] }} | Previous Partner Contact: {{ parts[2] }}</p>
+        </div>
+    {% endif %}
+
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Order Information</h2>
+            <p class="text-gray-700 mb-2"><span class="font-semibold">Order Date:</span> {{ order.order_date }}</p>
+            <p class="text-gray-700 mb-2"><span class="font-semibold">Status:</span>
+                <span class="px-2 inline-flex text-sm leading-5 font-semibold rounded-full
+                    {% if order.status == 'Delivered' %} bg-green-100 text-green-800
+                    {% elif order.status in ['Out for Delivery', 'Product Left from Shop', '10 Minutes Left for Delivery', 'Order Picked Up'] %} bg-orange-100 text-orange-800
+                    {% elif order.status == 'Shipped' %} bg-blue-100 text-blue-800
+                    {% elif order.status == 'Pending' %} bg-yellow-100 text-yellow-800
+                    {% elif order.status == 'Cancelled' %} bg-red-100 text-red-800
+                    {% else %} bg-gray-100 text-gray-800
+                    {% endif %}">
+                    {{ order.status }}
+                </span>
+            </p>
+            <p class="text-gray-700 mb-2"><span class="font-semibold">Total Amount:</span> Rs.{{ "%.2f"|format(order.total_amount) }}</p>
+            <p class="text-gray-700 mb-2"><span class="font-semibold">Payment Method:</span> {{ order.payment_method }}</p>
+        </div>
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Shipping Address</h2>
+            <p class="text-gray-700 font-semibold">{{ order.full_name }}</p>
+            <p class="text-gray-700">{{ order.address_line1 }}</p>
+            {% if order.address_line2 %}<p class="text-gray-700">{{ order.address_line2 }}</p>{% endif %}
+            <p class="text-gray-700">{{ order.city }}, {{ order.state }} {{ order.zip_code }}</p>
+            <p class="text-gray-700">{{ order.country }}</p>
+            <p class="text-gray-700 mt-2"><span class="font-semibold">Phone:</span> {{ order.phone_number }}</p>
+        </div>
+    </div>
+
+    <div class="mt-8 border-t pt-6 text-center">
+        {% if current_user.is_authenticated and current_user.is_delivery_boy %}
+            {% if order.status == 'Pending' %}
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Actions</h3>
+                <form action="{{ url_for('take_order', order_id=order.id) }}" method="POST">
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300">
+                        Take This Order
+                    </button>
+                </form>
+            {% elif order.delivery_boy_id == delivery_boy_id and order.status not in ['Delivered', 'Cancelled'] %}
+                   <h3 class="text-xl font-bold text-gray-800 mb-4">Update Order Status</h3>
+                   <form action="{{ url_for('update_order_status', order_id=order.id) }}" method="POST" class="flex items-center justify-center space-x-4">
+                        <select name="status" class="form-select block w-auto py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            <option value="Order Picked Up" {% if order.status == 'Order Picked Up' %}selected{% endif %}>Order Picked Up</option>
+                            <option value="Product Left from Shop" {% if order.status == 'Product Left from Shop' %}selected{% endif %}>Product Left from Shop</option>
+                            <option value="Out for Delivery" {% if order.status == 'Out for Delivery' %}selected{% endif %}>Out for Delivery</option>
+                            <option value="10 Minutes Left for Delivery" {% if order.status == '10 Minutes Left for Delivery' %}selected{% endif %}>10 Minutes Left for Delivery</option>
+                            <option value="Delivered">Delivered</option>
+                        </select>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                            Update Status
+                        </button>
+                    </form>
+
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">Other Actions</h3>
+                        <div class="flex items-center justify-center space-x-4">
+                            <button type="button" onclick="openActionModal('dboy_cancel', '{{ order.id }}')"
+                                    class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                                Cancel Order
+                            </button>
+                            <button type="button" onclick="openActionModal('leave', '{{ order.id }}')"
+                                    class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                                Leave Order
+                            </button>
+                        </div>
+                    </div>
+            {% endif %}
+        {% elif current_user.is_authenticated and current_user.id == order.user_id %}
+            {% if order.status == 'Pending' %}
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Need to cancel?</h3>
+                <button type="button" onclick="openActionModal('customer_cancel', '{{ order.id }}')"
+                        class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-red-300">
+                    Cancel Order
+                </button>
+            {% endif %}
+        {% elif current_user.is_authenticated and current_user.is_admin %}
+            <div class="text-center text-gray-500 italic">
+                <p>Admin view: No actions available on this page.</p>
+            </div>
+        {% endif %}
+    </div>
+    <h2 class="text-2xl font-bold text-gray-800 mb-4 mt-8">Items in this Order</h2>
+    {% if order_items %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price (at purchase)</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for item in order_items %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 flex items-center">
+                            <img src="{{ item.image_url }}" alt="{{ item.name }}" class="h-10 w-10 rounded-md object-cover mr-3"
+                                 onerror="this.onerror=null;this.src='https://placehold.co/40x40/CCCCCC/000000?text=No+Img';">
+                            {{ item.name }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.quantity }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Rs.{{ "%.2f"|format(item.price_at_purchase) }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">Rs.{{ "%.2f"|format(item.price_at_purchase * item.quantity) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-gray-600 italic">No items found for this order.</p>
+    {% endif %}
+
+    <div class="mt-8 text-center">
+        {% if current_user.is_delivery_boy %}
+            <a href="{{ url_for('delivery_boy_dashboard') }}" class="text-blue-600 hover:underline font-semibold">← Back to Dashboard</a>
+        {% elif current_user.is_admin %}
+            <a href="{{ url_for('admin_dashboard') }}" class="text-blue-600 hover:underline font-semibold">← Back to Admin Dashboard</a>
+        {% else %}
+             <a href="{{ url_for('view_orders') }}" class="text-blue-600 hover:underline font-semibold">← Back to My Orders</a>
+        {% endif %}
+    </div>
+</div>
+
+<div id="actionModal" class="fixed z-50 inset-0 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="closeActionModal()"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <form id="actionForm" method="POST" action="">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="modalTitle">Action Title</h3>
+                    <div class="mt-4">
+                        <label for="reason" class="block text-sm font-medium text-gray-700">Reason for this action:</label>
+                        <textarea id="reason" name="reason" rows="3" required
+                                     class="mt-1 shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                                     placeholder="Please enter a valid reason..."></textarea>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="submit" id="modalSubmitButton" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm">
+                        Submit
+                    </button>
+                    <button type="button" onclick="closeActionModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm">
+                        Close
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const modal = document.getElementById('actionModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const actionForm = document.getElementById('actionForm');
+    const modalSubmitButton = document.getElementById('modalSubmitButton');
+    
+    function openActionModal(actionType, orderId) {
+        if (actionType === 'dboy_cancel') {
+            modalTitle.textContent = 'Cancel Order #' + orderId;
+            actionForm.action = `/delivery/cancel_order/${orderId}`;
+            modalSubmitButton.className = 'w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm';
+            modalSubmitButton.textContent = 'Confirm Cancellation';
+        } else if (actionType === 'leave') {
+            modalTitle.textContent = 'Leave Order #' + orderId;
+            actionForm.action = `/delivery/leave_order/${orderId}`;
+            modalSubmitButton.className = 'w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-yellow-500 text-base font-medium text-white hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 sm:ml-3 sm:w-auto sm:text-sm';
+            modalSubmitButton.textContent = 'Confirm Leave';
+        } else if (actionType === 'customer_cancel') {
+            modalTitle.textContent = 'Request to Cancel Order #' + orderId;
+            actionForm.action = `/customer/cancel_order/${orderId}`;
+            modalSubmitButton.className = 'w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm';
+            modalSubmitButton.textContent = 'Submit Cancellation Request';
+        }
+        modal.classList.remove('hidden');
+    }
+
+    function closeActionModal() {
+        modal.classList.add('hidden');
+        actionForm.reset(); // Clear the form
+    }
+</script>
+{% endblock %}

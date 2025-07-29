@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ product.name }} - CO Shopping{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl shadow-lg p-8 md:p-12 max-w-5xl mx-auto flex flex-col md:flex-row items-center md:items-start gap-8 md:gap-12">
+    <div class="md:w-2/5 flex-shrink-0">
+        <img src="{{ product.image_url }}" alt="{{ product.name }}"
+             class="w-full h-auto rounded-lg shadow-md object-cover"
+             onerror="this.onerror=null;this.src='https://placehold.co/600x450/CCCCCC/000000?text=Image+Not+Found';">
+    </div>
+    <div class="md:w-3/5 w-full">
+        <h1 class="text-4xl font-extrabold text-gray-800 mb-4">{{ product.name }}</h1>
+        <p class="text-blue-600 text-5xl font-bold mb-6">Rs.{{ "%.2f"|format(product.price) }}</p>
+        <p class="text-gray-700 text-lg leading-relaxed mb-8">{{ product.description }}</p>
+
+        {# Conditional buttons based on user role #}
+        {% if current_user.is_authenticated %}
+            {% if is_admin %}
+                <div class="flex flex-wrap items-center gap-4">
+                    <a href="{{ url_for('admin_edit_product', product_id=product.id) }}"
+                       class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300">
+                        Edit Product
+                    </a>
+                    <form action="{{ url_for('admin_delete_product', product_id=product.id) }}" method="POST" class="inline-block" onsubmit="return confirm('Are you sure you want to delete this product? This action cannot be undone.');">
+                        <button type="submit"
+                                class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-red-300">
+                            Delete Product
+                        </button>
+                    </form>
+                </div>
+            {% else %}
+                <div class="w-full mt-6">
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <div class="flex-shrink-0 self-start sm:self-center">
+                             <div class="flex items-center rounded-lg border border-gray-300">
+                                 <button type="button" id="decrement-quantity-cart" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold h-12 w-12 flex items-center justify-center transition duration-200 rounded-l-lg" disabled>-</button>
+                                 <input type="number" id="quantity-cart" name="quantity_display" min="1" value="1" class="h-12 w-16 text-center focus:outline-none text-gray-800 font-semibold bg-white border-y border-gray-300 [-moz-appearance:_textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none">
+                                 <button type="button" id="increment-quantity-cart" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold h-12 w-12 flex items-center justify-center transition duration-200 rounded-r-lg">+</button>
+                             </div>
+                        </div>
+
+                        <form action="{{ url_for('add_to_cart', product_id=product.id) }}" method="POST" class="w-full sm:w-auto flex-grow">
+                            <input type="hidden" name="quantity" id="quantity-add-to-cart" value="1">
+                            <button type="submit" class="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition flex items-center justify-center whitespace-nowrap">Add to Cart</button>
+                        </form>
+                        
+                        <form action="{{ url_for('buy_now', product_id=product.id) }}" method="POST" class="w-full sm:w-auto flex-grow">
+                            <input type="hidden" name="quantity" id="quantity-buy-now" value="1">
+                            <button type="submit" class="w-full h-12 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition flex items-center justify-center whitespace-nowrap">Buy Now</button>
+                        </form>
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <p class="text-gray-600 text-sm italic">Please <a href="{{ url_for('login') }}" class="text-blue-600 hover:underline font-semibold">log in</a> to add items to your cart or buy now.</p>
+        {% endif %}
+
+        <a href="/" class="block text-center mt-6 text-blue-600 hover:text-blue-800 font-semibold py-3 transition duration-300">
+            ← Back to Products
+        </a>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if the quantity elements exist before adding listeners (i.e., for customer view)
+        const quantityDisplayInput = document.getElementById('quantity-cart');
+        if (quantityDisplayInput) {
+            const decrementBtn = document.getElementById('decrement-quantity-cart');
+            const incrementBtn = document.getElementById('increment-quantity-cart');
+            
+            const quantityAddToCartInput = document.getElementById('quantity-add-to-cart');
+            const quantityBuyNowInput = document.getElementById('quantity-buy-now');
+
+            function syncQuantities() {
+                const currentQuantity = parseInt(quantityDisplayInput.value);
+                
+                // Update hidden inputs for forms
+                if (quantityAddToCartInput) {
+                    quantityAddToCartInput.value = currentQuantity;
+                }
+                if (quantityBuyNowInput) {
+                    quantityBuyNowInput.value = currentQuantity;
+                }
+
+                // Update disabled state of the button
+                decrementBtn.disabled = currentQuantity <= 1;
+            }
+
+            incrementBtn.addEventListener('click', function() {
+                quantityDisplayInput.value = parseInt(quantityDisplayInput.value) + 1;
+                syncQuantities();
+            });
+
+            decrementBtn.addEventListener('click', function() {
+                let currentVal = parseInt(quantityDisplayInput.value);
+                if (currentVal > 1) {
+                    quantityDisplayInput.value = currentVal - 1;
+                    syncQuantities();
+                }
+            });
+
+            // Listener for manual input
+            quantityDisplayInput.addEventListener('input', function() {
+                // Allow typing, but validate on blur
+                syncQuantities();
+            });
+
+            // Validate on blur (when user clicks away)
+            quantityDisplayInput.addEventListener('blur', function() {
+                let currentValue = parseInt(quantityDisplayInput.value);
+                if (isNaN(currentValue) || currentValue < 1) {
+                    quantityDisplayInput.value = 1; // Reset to 1 if invalid
+                }
+                syncQuantities();
+            });
+
+            // Initial sync on page load
+            syncQuantities();
+        }
+    });
+</script>
+{% endblock %}

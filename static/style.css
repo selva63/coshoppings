@@ -1,0 +1,17 @@
+/* static/style.css */
+
+/*
+* The @apply directive is a Tailwind CSS feature, not standard CSS.
+* Your code editor's linter might show an underline warning because it doesn't
+* natively understand this syntax.
+*
+* This is a visual warning in your editor, and it does NOT prevent the code
+* from working correctly in the browser, as the Tailwind CDN processes it.
+*
+* To remove this warning in your editor, consider installing a Tailwind CSS
+* IntelliSense extension (e.g., for VS Code).
+*/
+body {
+    font-family: 'Inter', sans-serif;
+    @apply bg-gradient-to-br from-blue-50 to-purple-100 min-h-screen flex flex-col;
+}

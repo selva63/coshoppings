@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Review Your Order - CO Shopping{% endblock %}
+
+{% block content %}
+<h1 class="text-4xl font-extrabold text-gray-800 mb-8 text-center">Review Your Order</h1>
+
+<div class="bg-white rounded-xl shadow-lg p-8 md:p-12 max-w-4xl mx-auto">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Shipping Address</h2>
+            <p class="text-gray-700 font-semibold">{{ shipping_address.full_name }}</p>
+            <p class="text-gray-700">{{ shipping_address.address_line1 }}</p>
+            {% if shipping_address.address_line2 %}<p class="text-gray-700">{{ shipping_address.address_line2 }}</p>{% endif %}
+            <p class="text-gray-700">{{ shipping_address.city }}, {{ shipping_address.state }} {{ shipping_address.zip_code }}</p>
+            <p class="text-gray-700">{{ shipping_address.country }}</p>
+            {# Link to change address will redirect to cart for multi-item, or addresses for single item #}
+            {% if is_buy_now_flow %}
+                <a href="{{ url_for('view_addresses', next_flow='buy_now_checkout') }}" class="text-blue-600 hover:underline text-sm mt-2 inline-block">Change Address</a>
+            {% else %}
+                <a href="{{ url_for('view_cart') }}" class="text-blue-600 hover:underline text-sm mt-2 inline-block">Change Address</a>
+            {% endif %}
+        </div>
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Order Summary</h2>
+            <div class="overflow-x-auto mb-4">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
+                            <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+                            <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                            <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for item in cart_items %} {# cart_items now holds either actual cart items or the single buy_now product #}
+                        <tr>
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{{ item.name }}</td>
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ item.quantity }}</td>
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">Rs.{{ "%.2f"|format(item.price) }}</td>
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900 font-semibold">Rs.{{ "%.2f"|format(item.price * item.quantity) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-2xl font-bold text-gray-800 text-right">Total: Rs.{{ "%.2f"|format(total_amount) }}</p>
+        </div>
+    </div>
+
+    <hr class="my-8 border-gray-200">
+
+    <div class="text-center">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Select Payment Method</h2>
+        <form id="paymentForm" action="{{ url_for('checkout_place_order') }}" method="POST">
+            <input type="hidden" name="shipping_address_id" value="{{ shipping_address.id }}">
+            {# Hidden input to indicate if this is a 'Buy Now' flow #}
+            <input type="hidden" name="is_buy_now_flow" value="{{ 'true' if is_buy_now_flow else 'false' }}">
+
+            <div class="mb-6 text-left max-w-md mx-auto">
+                <label class="flex items-center p-4 border border-gray-200 rounded-lg mb-3 cursor-pointer hover:bg-gray-50 transition duration-200">
+                    <input type="radio" name="payment_method" value="Cash on Delivery" class="payment-radio form-radio h-5 w-5 text-blue-600" checked required>
+                    <span class="ml-3 text-gray-800 font-semibold">Cash on Delivery (COD)</span>
+                </label>
+            </div>
+
+            <button type="submit" id="placeOrderButton"
+                    class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 w-full md:w-auto">
+                Place Order
+            </button>
+        </form>
+        {# Back button logic adjusted #}
+        {% if is_buy_now_flow %}
+            <a href="{{ url_for('product_detail', product_id=cart_items[0].id) }}" class="inline-block text-blue-600 hover:text-blue-800 font-semibold py-3 px-6 mt-4 transition duration-300">
+                ← Back to Product
+            </a>
+        {% else %}
+            <a href="{{ url_for('view_cart') }}" class="inline-block text-blue-600 hover:text-blue-800 font-semibold py-3 px-6 mt-4 transition duration-300">
+                ← Back to Cart
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+{# Simplified JavaScript - no longer needed for dynamic payment forms #}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // No specific JS needed for dynamic payment forms as only COD is available.
+        // The 'Place Order' button is always visible.
+    });
+</script>
+{# End of content block for review.html #}
+{% endblock %}

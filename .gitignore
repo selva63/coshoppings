@@ -1,0 +1,22 @@
+# Virtual Environment
+venv/
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+Python*.egg-info/
+dist/
+build/
+develop-eggs/
+.installed.cfg
+*.egg
+
+# Database
+database.db
+
+# Uploads (Optional, if you don't want uploaded images version controlled on Render)
+static/uploads/

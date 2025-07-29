@@ -1,0 +1,34 @@
+{# This template contains all the navigation links to be included in both mobile and desktop views #}
+
+{% if current_user.is_authenticated %}
+    {# Role-based links - Ovvoru role-kum thani thani links #}
+    {% if is_admin %}
+        <a href="{{ url_for('admin_dashboard') }}" class="text-purple-600 hover:text-purple-800 font-bold transition duration-300 py-2 md:py-0">Admin Panel</a>
+        <a href="/" class="text-purple-600 hover:text-purple-800 font-bold transition duration-300 py-2 md:py-0">Products</a>
+    {% elif is_delivery_boy %}
+        <a href="{{ url_for('delivery_boy_dashboard') }}" class="text-teal-600 hover:text-teal-800 font-bold transition duration-300 py-2 md:py-0">Dashboard</a>
+        <a href="/" class="text-teal-600 hover:text-teal-800 font-bold transition duration-300 py-2 md:py-0">Products</a>
+    {% else %}
+        {# Customer Links - Customer-kaana links #}
+        <a href="/" class="text-gray-600 hover:text-blue-600 font-medium transition duration-300 py-2 md:py-0">Products</a>
+        <a href="{{ url_for('view_orders') }}" class="text-gray-600 hover:text-blue-600 font-medium transition duration-300 py-2 md:py-0">My Orders</a>
+        <a href="{{ url_for('view_addresses') }}" class="text-gray-600 hover:text-blue-600 font-medium transition duration-300 py-2 md:py-0">My Addresses</a>
+        <a href="{{ url_for('view_cart') }}" class="text-gray-600 hover:text-blue-600 font-medium transition duration-300 flex items-center py-2 md:py-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+            </svg>
+            Cart
+            {% if cart_item_count > 0 %}
+                <span class="ml-1 px-2 py-0.5 bg-blue-500 text-white text-xs font-bold rounded-full">{{ cart_item_count }}</span>
+            {% endif %}
+        </a>
+    {% endif %}
+
+    {# Welcome message and Logout button #}
+    <span class="py-2 md:py-0 md:border-l md:pl-4 md:ml-2 {% if is_admin %}text-purple-600 font-bold{% elif is_delivery_boy %}text-teal-600 font-bold{% else %}text-gray-700 font-medium{% endif %}">Welcome, {{ current_user.username }}!</span>
+    <a href="{{ url_for('logout') }}" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full shadow-md transition duration-300 ease-in-out transform hover:scale-105 w-full md:w-auto text-center">Logout</a>
+{% else %}
+    {# Links for non-authenticated users - Login seyyadha users-ku #}
+    <a href="{{ url_for('login') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full shadow-md transition duration-300 ease-in-out transform hover:scale-105 w-full md:w-auto text-center">Login</a>
+    <a href="{{ url_for('register') }}" class="mt-2 md:mt-0 ml-0 md:ml-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-full shadow-md transition duration-300 ease-in-out transform hover:scale-105 w-full md:w-auto text-center">Register</a>
+{% endif %}

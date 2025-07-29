@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}Send Registration Link - Admin Panel{% endblock %}
+
+{% block content %}
+<h1 class="text-4xl font-extrabold text-gray-800 mb-8 text-center">Send Registration Link</h1>
+
+<div class="flex items-center justify-center min-h-[calc(100vh-250px)]">
+    <div class="bg-white rounded-xl shadow-lg p-8 md:p-10 w-full max-w-xl text-center">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">Send link to {{ delivery_boy.name }}</h2>
+        <p class="text-gray-600 mb-8">Choose how you want to send the registration link:</p>
+
+        <div class="mb-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <p class="text-gray-700 font-semibold mb-2">Registration Link:</p>
+            <div class="flex items-center justify-center space-x-2">
+                <input type="text" id="registrationLink" value="{{ registration_link }}" readonly
+                       class="flex-grow px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white focus:outline-none select-all text-sm md:text-base">
+                <button id="copyLinkButton"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300">
+                    Copy Link
+                </button>
+            </div>
+            <p id="copyConfirmation" class="text-green-600 text-sm mt-2 hidden">Link copied!</p>
+        </div>
+
+        <div class="flex flex-col space-y-4">
+            {# WhatsApp Link #}
+            {% if delivery_boy.whatsapp_mobile_number %}
+            <a href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer"
+               class="inline-flex items-center justify-center bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-circle-more mr-3">
+                    <path d="M7.9 20A10 10 0 1 0 4 16.1L2 22Z"/>
+                    <path d="M8 12h.01"/>
+                    <path d="M12 12h.01"/>
+                    <path d="M16 12h.01"/>
+                </svg>
+                Send via WhatsApp
+            </a>
+            {% else %}
+            <p class="text-gray-500 italic">WhatsApp number not provided for this delivery boy.</p>
+            {% endif %}
+
+            {# Email Link #}
+            {% if delivery_boy.email %}
+            <a href="{{ email_url }}" target="_blank" rel="noopener noreferrer"
+               class="inline-flex items-center justify-center bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-red-300">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail mr-3">
+                    <rect width="20" height="16" x="2" y="4" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+                Send via Email
+            </a>
+            {% else %}
+            <p class="text-gray-500 italic">Email address not provided for this delivery boy.</p>
+            {% endif %}
+        </div>
+
+        <p class="text-center text-gray-600 text-sm mt-6">
+            <a href="{{ url_for('admin_delivery_boys') }}" class="text-blue-600 hover:underline font-semibold">← Back to Delivery Boy List</a>
+        </p>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const copyButton = document.getElementById('copyLinkButton');
+        const registrationLinkInput = document.getElementById('registrationLink');
+        const copyConfirmation = document.getElementById('copyConfirmation');
+
+        copyButton.addEventListener('click', function() {
+            // Select the text field
+            registrationLinkInput.select();
+            registrationLinkInput.setSelectionRange(0, 99999); // For mobile devices
+
+            // Copy the text inside the text field
+            document.execCommand('copy');
+
+            // Show confirmation message
+            copyConfirmation.classList.remove('hidden');
+            setTimeout(() => {
+                copyConfirmation.classList.add('hidden');
+            }, 2000); // Hide after 2 seconds
+        });
+    });
+</script>
+{% endblock %}

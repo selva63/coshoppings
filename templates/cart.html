@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Your Shopping Cart - CO Shopping{% endblock %}
+
+{% block content %}
+<h1 class="text-4xl font-extrabold text-gray-800 mb-8 text-center">Your Shopping Cart</h1>
+
+{% if cart_items %}
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subtotal</th>
+                        <th scope="col" class="relative px-6 py-3"><span class="sr-only">Remove</span></th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for item in cart_items %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 flex items-center">
+                            <img src="{{ item.image_url }}" alt="{{ item.name }}" class="h-10 w-10 rounded-md object-cover mr-3"
+                                 onerror="this.onerror=null;this.src='https://placehold.co/40x40/CCCCCC/000000?text=No+Img';">
+                            {{ item.name }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Rs.{{ "%.2f"|format(item.price) }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.quantity }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">Rs.{{ "%.2f"|format(item.price * item.quantity) }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <a href="{{ url_for('remove_from_cart', product_id=item.id) }}" class="text-red-600 hover:text-red-900 transition duration-300">Remove</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-8 text-right">
+            <p class="text-2xl font-bold text-gray-800">Total: Rs.{{ "%.2f"|format(total_price) }}</p>
+        </div>
+
+        <div class="mt-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Select Shipping Address</h2>
+            {% if addresses %}
+                <form action="{{ url_for('checkout_review') }}" method="POST"> {# Changed action to checkout_review #}
+                    <div class="mb-4">
+                        {% for address in addresses %}
+                            <label class="flex items-start p-4 border border-gray-200 rounded-lg mb-3 cursor-pointer hover:bg-gray-50 transition duration-200">
+                                <input type="radio" name="shipping_address_id" value="{{ address.id }}" class="form-radio h-5 w-5 text-blue-600 mt-1" {% if address.is_default %}checked{% endif %} required>
+                                <span class="ml-3 text-gray-800">
+                                    <span class="font-semibold">{{ address.full_name }}</span>,
+                                    {{ address.address_line1 }},
+                                    {% if address.address_line2 %}{{ address.address_line2 }}, {% endif %}
+                                    {{ address.city }}, {{ address.state }} {{ address.zip_code }}, {{ address.country }}
+                                    {% if address.is_default %} <span class="text-xs text-blue-500">(Default)</span>{% endif %}
+                                </span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                    <button type="submit" class="mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 w-full">
+                        Proceed to Checkout
+                    </button>
+                </form>
+            {% else %}
+                <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg text-center">
+                    <p class="font-semibold mb-2">No shipping addresses found!</p>
+                    <p>Please <a href="{{ url_for('add_address', next='checkout') }}" class="text-blue-600 hover:underline">add an address</a> before proceeding to checkout.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% else %}
+    <div class="bg-white rounded-xl shadow-lg p-8 text-center">
+        <p class="text-xl text-gray-600 mb-4">Your cart is empty.</p>
+        <a href="{{ url_for('index') }}" class="text-blue-600 hover:underline font-semibold">Continue Shopping</a>
+    </div>
+{% endif %}
+{% endblock %}
