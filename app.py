@@ -20,16 +20,14 @@ app = Flask(__name__)
 # For local development, you can set these in a .env file and use python-dotenv,
 # or set them directly in your shell. For Render, you'll set them in the dashboard.
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_very_secret_key_for_development_only')
-# IMPORTANT: Change 'a_very_secret_key_for_development_only' to a strong, random key
-# when running locally if not using environment variables. For production on Render,
-# ensure the SECRET_KEY environment variable is set and strong.
+
 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get('clickorder6@gmail.com') # Get from environment variable
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD') # Get from environment variable
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('clickorder6@gmail.com', os.environ.get('clickorder6@gmail.com')) # Default sender can be the MAIL_USERNAME
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME') # Environment variable-ன் பெயர் 'MAIL_USERNAME'
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD') # Environment variable-ன் பெயர் 'MAIL_PASSWORD'
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', os.environ.get('MAIL_USERNAME'))
 
 # Initialize Flask-Mail
 mail = Mail(app)
