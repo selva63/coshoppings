@@ -1128,7 +1128,6 @@ def admin_add_delivery_boy():
         if User.get_by_email(email):
             flash('This email address is already used by an existing user. Please use a different one.', 'danger')
             return render_template('admin/add_edit_delivery_boy.html', delivery_boy=delivery_boy_data, current_pincodes=pincodes_str)
-        # NEW: Check if whatsapp_mobile_number already exists
         if db.execute('SELECT id FROM delivery_boys WHERE whatsapp_mobile_number = ?', (whatsapp_mobile_number,)).fetchone():
             flash('A delivery boy with this WhatsApp mobile number already exists.', 'danger')
             return render_template('admin/add_edit_delivery_boy.html', delivery_boy=delivery_boy_data, current_pincodes=pincodes_str)
@@ -1193,11 +1192,9 @@ def admin_edit_delivery_boy(dboy_id):
         if User.get_by_email(email) and User.get_by_email(email).id != delivery_boy['user_id']:
              flash('This email address is already used by an existing user. Please use a different one.', 'danger')
              return render_template('admin/add_edit_delivery_boy.html', delivery_boy=delivery_boy, current_pincodes=pincodes_str)
-        # NEW: Check if whatsapp_mobile_number already exists (excluding the current delivery boy)
         if db.execute('SELECT id FROM delivery_boys WHERE whatsapp_mobile_number = ? AND id != ?', (whatsapp_mobile_number, dboy_id)).fetchone():
             flash('A delivery boy with this WhatsApp mobile number already exists.', 'danger')
             return render_template('admin/add_edit_delivery_boy.html', delivery_boy=delivery_boy, current_pincodes=pincodes_str)
-
 
         try:
             db.execute(
