@@ -16,13 +16,9 @@ import sib_api_v3_sdk # Brevo's library name
 
 app = Flask(__name__)
 
-# --- UPDATED: Brevo API configurations from environment variables ---
-# For a production environment, set these on your cloud server.
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_very_secret_key_for_development_only')
-# Your provided Brevo API Key
-app.config['BREVO_API_KEY'] = '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'
-# Your provided verified sender email
-app.config['MAIL_DEFAULT_SENDER'] = 'clickorder6@gmail.com'
+app.config['BREVO_API_KEY'] = os.environ.get('BREVO_API_KEY')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER')
 
 # Define the path for the SQLite database
 DATABASE = 'database.db'
