@@ -228,7 +228,6 @@ def send_email(to_email, subject, body, html_body=None):
         print(f"Failed to send email to {to_email}: {e}")
         return False
 
-
 @app.context_processor
 def inject_globals():
     cart_count = 0
@@ -249,7 +248,6 @@ def inject_globals():
             (current_user.id,)
         ).fetchone()
         unread_notification_count = unread_count_data[0] if unread_count_data else 0
-
     return dict(
         cart_item_count=cart_count,
         is_admin=is_admin,
@@ -265,24 +263,19 @@ def index():
     sql_query = 'SELECT * FROM products'
     params = []
     conditions = []
-
     if query:
         conditions.append('(name LIKE ? OR description LIKE ?)')
         params.extend([f'%{query}%', f'%{query}%'])
-
     if category and category != 'All':
         conditions.append('category = ?')
         params.append(category)
-
     if conditions:
         sql_query += ' WHERE ' + ' AND '.join(conditions)
     sql_query += ' ORDER BY id DESC'
-
     products = db.execute(sql_query, params).fetchall()
     categories = db.execute('SELECT DISTINCT category FROM products ORDER BY category').fetchall()
     category_list = [cat['category'] for cat in categories]
     category_list.insert(0, 'All')
-
     return render_template('index.html',
                            products=products,
                            search_query=query,
@@ -971,7 +964,6 @@ def admin_add_product():
 def admin_edit_product(product_id):
     db = get_db()
     product = db.execute('SELECT * FROM products WHERE id = ?', (product_id,)).fetchone()
-
     if not product:
         flash('Product not found.', 'danger')
         return redirect(url_for('admin_products'))
@@ -982,10 +974,8 @@ def admin_edit_product(product_id):
         price = float(request.form['price'])
         category = request.form.get('category', 'Miscellaneous')
         image_url_to_save = product['image_url']
-
         if 'delete_current_image_button' in request.form:
             image_url_to_save = None
-
         if 'image_file' in request.files:
             file = request.files['image_file']
             if file.filename != '' and allowed_file(file.filename):
@@ -995,7 +985,6 @@ def admin_edit_product(product_id):
                 image_url_to_save = url_for('static', filename=f'uploads/{filename}')
             elif file.filename == '' and 'delete_current_image_button' not in request.form:
                 pass
-
         try:
             db.execute(
                 'UPDATE products SET name = ?, description = ?, price = ?, image_url = ?, category = ? WHERE id = ?',
@@ -1003,7 +992,6 @@ def admin_edit_product(product_id):
             )
             db.commit()
             flash('Product updated successfully!', 'success')
-
             if request.referrer and 'admin/products' not in request.referrer and 'product/' not in request.referrer:
                 return redirect(url_for('index'))
             else:
@@ -1026,7 +1014,6 @@ def admin_delete_product(product_id):
         db.execute('DELETE FROM products WHERE id = ?', (product_id,))
         db.commit()
         flash('Product deleted successfully!', 'success')
-
         if request.referrer and 'admin/products' not in request.referrer and 'product/' not in request.referrer:
             return redirect(url_for('index'))
         else:
@@ -1132,15 +1119,18 @@ def admin_add_delivery_boy():
                                    current_pincodes=pincodes_str,
                                    pincode_error=error_message)
 
-        # Check for email and mobile number uniqueness in delivery_boys and users table
         if db.execute('SELECT id FROM delivery_boys WHERE mobile_number = ?', (mobile_number,)).fetchone():
             flash('A delivery boy with this mobile number already exists.', 'danger')
             return render_template('admin/add_edit_delivery_boy.html', delivery_boy=delivery_boy_data, current_pincodes=pincodes_str)
         if db.execute('SELECT id FROM delivery_boys WHERE email = ?', (email,)).fetchone():
             flash('A delivery boy with this email address already exists.', 'danger')
             return render_template('admin/add_edit_delivery_boy.html', delivery_boy=delivery_boy_data, current_pincodes=pincodes_str)
-        if User.get_by_email(email): # NEW: Check if email is already in the main users table
+        if User.get_by_email(email):
             flash('This email address is already used by an existing user. Please use a different one.', 'danger')
+            return render_template('admin/add_edit_delivery_boy.html', delivery_boy=delivery_boy_data, current_pincodes=pincodes_str)
+        # NEW: Check if whatsapp_mobile_number already exists
+        if db.execute('SELECT id FROM delivery_boys WHERE whatsapp_mobile_number = ?', (whatsapp_mobile_number,)).fetchone():
+            flash('A delivery boy with this WhatsApp mobile number already exists.', 'danger')
             return render_template('admin/add_edit_delivery_boy.html', delivery_boy=delivery_boy_data, current_pincodes=pincodes_str)
 
         try:
@@ -1200,9 +1190,14 @@ def admin_edit_delivery_boy(dboy_id):
         if db.execute('SELECT id FROM delivery_boys WHERE email = ? AND id != ?', (email, dboy_id)).fetchone():
             flash('A delivery boy with this email address already exists.', 'danger')
             return render_template('admin/add_edit_delivery_boy.html', delivery_boy=delivery_boy, current_pincodes=pincodes_str)
-        if User.get_by_email(email) and User.get_by_email(email).id != delivery_boy['user_id']: # NEW: Check uniqueness against other users
+        if User.get_by_email(email) and User.get_by_email(email).id != delivery_boy['user_id']:
              flash('This email address is already used by an existing user. Please use a different one.', 'danger')
              return render_template('admin/add_edit_delivery_boy.html', delivery_boy=delivery_boy, current_pincodes=pincodes_str)
+        # NEW: Check if whatsapp_mobile_number already exists (excluding the current delivery boy)
+        if db.execute('SELECT id FROM delivery_boys WHERE whatsapp_mobile_number = ? AND id != ?', (whatsapp_mobile_number, dboy_id)).fetchone():
+            flash('A delivery boy with this WhatsApp mobile number already exists.', 'danger')
+            return render_template('admin/add_edit_delivery_boy.html', delivery_boy=delivery_boy, current_pincodes=pincodes_str)
+
 
         try:
             db.execute(
@@ -1276,36 +1271,28 @@ def admin_send_delivery_boy_link(dboy_id):
 def delivery_boy_register(delivery_boy_id):
     db = get_db()
     dboy = db.execute('SELECT * FROM delivery_boys WHERE id = ?', (delivery_boy_id,)).fetchone()
-
     if not dboy:
         flash('Invalid registration link or delivery boy not found.', 'danger')
         return redirect(url_for('login'))
-
     if dboy['user_id']:
         flash('This delivery boy account is already registered. Please log in.', 'info')
         return redirect(url_for('login'))
-
     if current_user.is_authenticated:
         flash('You are already logged in. Please log out to register a new delivery boy account.', 'warning')
         return redirect(url_for('index'))
-
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
         confirm_password = request.form['confirm_password']
-
         if not (5 <= len(username) <= 10):
             flash('Username must be between 5 and 10 characters long.', 'danger')
             return render_template('delivery_boy_register.html', delivery_boy_id=delivery_boy_id, dboy_name=dboy['name'])
-
         if password != confirm_password:
             flash('Passwords do not match.', 'danger')
             return render_template('delivery_boy_register.html', delivery_boy_id=delivery_boy_id, dboy_name=dboy['name'])
-
         if db.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone():
             flash('Username already taken. Please choose a different one.', 'warning')
             return render_template('delivery_boy_register.html', delivery_boy_id=delivery_boy_id, dboy_name=dboy['name'])
-
         try:
             hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
             cursor = db.execute(
@@ -1315,16 +1302,13 @@ def delivery_boy_register(delivery_boy_id):
             new_user_id = cursor.lastrowid
             db.execute('UPDATE delivery_boys SET user_id = ? WHERE id = ?', (new_user_id, delivery_boy_id))
             db.commit()
-
             user = User(new_user_id, username, hashed_password, is_admin=0, is_delivery_boy=1)
             login_user(user)
-
             flash('Delivery boy registration successful! You are now logged in.', 'success')
             return redirect(url_for('delivery_boy_dashboard'))
         except sqlite3.Error as e:
             flash(f'An error occurred during registration: {e}', 'danger')
             db.rollback()
-
     return render_template('delivery_boy_register.html', delivery_boy_id=delivery_boy_id, dboy_name=dboy['name'])
 
 @app.route('/delivery_boy_dashboard')
@@ -1342,14 +1326,12 @@ def delivery_boy_dashboard():
         flash('Delivery boy profile not found. Please contact an administrator.', 'error')
         logout_user()
         return redirect(url_for('login'))
-
     delivery_boy_id = delivery_boy_info['id']
     dboy_pincodes_data = db.execute(
         'SELECT pincode FROM delivery_boy_pincodes WHERE delivery_boy_id = ?',
         (delivery_boy_id,)
     ).fetchall()
     pincode_list = [p['pincode'] for p in dboy_pincodes_data]
-
     def attach_items_to_orders(orders_list):
         orders_with_items = []
         for order_row in orders_list:
@@ -1363,7 +1345,6 @@ def delivery_boy_dashboard():
             order['order_items'] = order_items
             orders_with_items.append(order)
         return orders_with_items
-
     base_order_query = '''
         SELECT o.id, o.order_date, o.total_amount, o.status, o.cancellation_reason,
             u.username AS customer_name,
@@ -1374,7 +1355,6 @@ def delivery_boy_dashboard():
         JOIN addresses a ON o.shipping_address_id = a.id
         LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.id
     '''
-
     active_orders_raw = []
     if pincode_list:
         pincode_placeholders = ','.join(['?' for _ in pincode_list])
@@ -1389,13 +1369,10 @@ def delivery_boy_dashboard():
         params = pincode_list + [delivery_boy_id]
         active_orders_raw = db.execute(sql_query, params).fetchall()
     active_orders = attach_items_to_orders(active_orders_raw)
-
     delivered_orders_raw = db.execute(f"{base_order_query} WHERE o.delivery_boy_id = ? AND o.status = 'Delivered' ORDER BY o.order_date DESC", (delivery_boy_id,)).fetchall()
     delivered_orders = attach_items_to_orders(delivered_orders_raw)
-
     cancelled_orders_raw = db.execute(f"{base_order_query} WHERE o.delivery_boy_id = ? AND o.status = 'Cancelled' ORDER BY o.order_date DESC", (delivery_boy_id,)).fetchall()
     cancelled_orders = attach_items_to_orders(cancelled_orders_raw)
-
     leaved_reason_str = f"Left by Delivery Boy::{delivery_boy_info['name']}::%"
     leaved_orders_raw = db.execute(
         f"{base_order_query} WHERE o.cancellation_reason LIKE ? AND o.status = 'Pending' AND o.delivery_boy_id IS NULL ORDER BY o.order_date DESC",
@@ -1403,7 +1380,6 @@ def delivery_boy_dashboard():
     ).fetchall()
     leaved_orders = attach_items_to_orders(leaved_orders_raw)
     leaved_orders_count = len(leaved_orders)
-
     return render_template('delivery_boy/dashboard.html',
                            delivery_boy_info=delivery_boy_info,
                            pincode_list=pincode_list,
