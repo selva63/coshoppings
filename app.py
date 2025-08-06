@@ -11,26 +11,18 @@ import urllib.parse # For URL encoding for WhatsApp/Gmail links
 from werkzeug.utils import secure_filename # For secure file uploads
 import secrets # For generating secure tokens
 
-# NEW: Import Flask-Mail components
-from flask_mail import Mail, Message
+# NEW: Import the Brevo API client library
+import sib_api_v3_sdk # Brevo's library name
 
 app = Flask(__name__)
 
-# --- UPDATED: Retrieve SECRET_KEY and Mail configurations from environment variables ---
-# For local development, you can set these in a .env file and use python-dotenv,
-# or set them directly in your shell. For Render, you'll set them in the dashboard.
+# --- UPDATED: Brevo API configurations from environment variables ---
+# For a production environment, set these on your cloud server.
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_very_secret_key_for_development_only')
-
-
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME') # Environment variable-ன் பெயர் 'MAIL_USERNAME'
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD') # Environment variable-ன் பெயர் 'MAIL_PASSWORD'
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', os.environ.get('MAIL_USERNAME'))
-
-# Initialize Flask-Mail
-mail = Mail(app)
+# Your provided Brevo API Key
+app.config['BREVO_API_KEY'] = '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'
+# Your provided verified sender email
+app.config['MAIL_DEFAULT_SENDER'] = 'clickorder6@gmail.com'
 
 # Define the path for the SQLite database
 DATABASE = 'database.db'
@@ -260,24 +252,36 @@ def create_notification(user_id, message, order_id=None):
         )
         db.commit()
 
-# NEW: send_email function (using Flask-Mail)
+# UPDATED: send_email function using the Brevo API
 def send_email(to_email, subject, body, html_body=None):
-    """
-    Sends an email using Flask-Mail.
-    Requires Flask-Mail to be installed and configured in app.config.
-    """
-    msg = Message(subject, recipients=[to_email])
-    msg.body = body
-    if html_body:
-        msg.html = html_body
+    api_key = app.config.get('BREVO_API_KEY')
+    default_sender = app.config.get('MAIL_DEFAULT_SENDER')
+
+    if not api_key or not default_sender:
+        print("Brevo API key or default sender not configured.")
+        return False
+    
+    configuration = sib_api_v3_sdk.Configuration()
+    configuration.api_key['api-key'] = api_key
+    
+    api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
+    
+    send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+        to=[{"email": to_email}],
+        sender={"email": default_sender, "name": "CO Shopping"},
+        subject=subject,
+        html_content=html_body,
+        text_content=body
+    )
+
     try:
-        mail.send(msg)
-        print(f"Email sent successfully to {to_email}")
+        api_response = api_instance.send_transac_email(send_smtp_email)
+        print(f"Email sent successfully from {default_sender} to {to_email}.")
         return True
     except Exception as e:
         print(f"Failed to send email to {to_email}: {e}")
-        # flash(f"Email sending failed to {to_email}: {e}", 'danger') # You might want to flash this error to admin
         return False
+
 
 # --- UPDATED: Context Processor for Cart Count, User Roles, and Notifications ---
 @app.context_processor
@@ -986,13 +990,13 @@ def order_detail(order_id):
     db = get_db()
 
     order_query = '''SELECT o.*,
-                                a.full_name, a.phone_number, a.address_line1, a.address_line2, a.city, a.state, a.zip_code, a.country,
-                                db.name as delivery_boy_name,
-                                db.mobile_number as delivery_boy_phone
-                                FROM orders o
-                                JOIN addresses a ON o.shipping_address_id = a.id
-                                LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.id
-                                WHERE o.id = ?'''
+                                 a.full_name, a.phone_number, a.address_line1, a.address_line2, a.city, a.state, a.zip_code, a.country,
+                                 db.name as delivery_boy_name,
+                                 db.mobile_number as delivery_boy_phone
+                                 FROM orders o
+                                 JOIN addresses a ON o.shipping_address_id = a.id
+                                 LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.id
+                                 WHERE o.id = ?'''
     order = db.execute(order_query, (order_id,)).fetchone()
 
     if not order:
@@ -1161,7 +1165,7 @@ def admin_add_product():
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 image_url = url_for('static', filename=f'uploads/{filename}')
             elif file.filename == '': # If file input was used but no file selected
-                    flash('No file selected for upload, or file is empty.', 'warning')
+                 flash('No file selected for upload, or file is empty.', 'warning')
 
         db = get_db()
         try:
@@ -1968,19 +1972,19 @@ def forgot_password():
                 <p>Please click the button below to reset your password:</p>
                 <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; box-sizing: border-box; width: 100%;">
                     <tbody>
-                      <tr>
-                        <td align="left" style="font-family: sans-serif; font-size: 14px; vertical-align: top; padding-bottom: 15px;">
-                          <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: auto;">
-                            <tbody>
-                              <tr>
-                                <td style="font-family: sans-serif; font-size: 14px; vertical-align: top; border-radius: 5px; text-align: center; background-color: #3498db;">
-                                  <a href="{reset_url}" target="_blank" style="border: solid 1px #3498db; border-radius: 5px; box-sizing: border-box; cursor: pointer; text-decoration: none; font-size: 14px; font-weight: bold; margin: 0; padding: 12px 25px; text-transform: capitalize; background-color: #3498db; border-color: #3498db; color: #ffffff;">Reset Your Password</a>
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
-                        </td>
-                      </tr>
+                        <tr>
+                            <td align="left" style="font-family: sans-serif; font-size: 14px; vertical-align: top; padding-bottom: 15px;">
+                                <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: auto;">
+                                    <tbody>
+                                        <tr>
+                                            <td style="font-family: sans-serif; font-size: 14px; vertical-align: top; border-radius: 5px; text-align: center; background-color: #3498db;">
+                                                <a href="{reset_url}" target="_blank" style="border: solid 1px #3498db; border-radius: 5px; box-sizing: border-box; cursor: pointer; text-decoration: none; font-size: 14px; font-weight: bold; margin: 0; padding: 12px 25px; text-transform: capitalize; background-color: #3498db; border-color: #3498db; color: #ffffff;">Reset Your Password</a>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
                 <p>This link is valid for 1 hour.</p>
@@ -1989,11 +1993,10 @@ def forgot_password():
             </div>
             """
 
-            # Here's where the actual email sending would happen
-            if not send_email(user.email, subject, plain_body, html_body=html_body): # Pass both plain and HTML body
+            if not send_email(user.email, subject, plain_body, html_body=html_body):
                 flash_message = 'Failed to send email. Please try again later.'
 
-        flash(flash_message, 'info') # Display generic or specific feedback
+        flash(flash_message, 'info')
         return redirect(url_for('login'))
     return render_template('forgot_password.html')
 
@@ -2001,13 +2004,10 @@ def forgot_password():
 def reset_password(token):
     if current_user.is_authenticated:
         return redirect(url_for('index'))
-
     db = get_db()
     user_data = db.execute('SELECT id, username, email, reset_token, reset_token_expires_at FROM users WHERE reset_token = ?', (token,)).fetchone()
-
     user_for_reset = None
     if user_data:
-        # Check if token matches and is not expired
         if user_data['reset_token'] == token and user_data['reset_token_expires_at']:
             try:
                 expires_at = datetime.fromisoformat(user_data['reset_token_expires_at'])
@@ -2015,49 +2015,35 @@ def reset_password(token):
                     user_for_reset = User(user_data['id'], user_data['username'], None, email=user_data['email'])
                 else:
                     flash('Password reset link has expired. Please request a new one.', 'danger')
-            except ValueError: # Handles invalid date format if somehow corrupted
+            except ValueError:
                 flash('Invalid reset token or format. Please request a new one.', 'danger')
         else:
-            flash('Invalid or expired password reset link.', 'danger') # Covers token mismatch or no expiry data
+            flash('Invalid or expired password reset link.', 'danger')
     else:
         flash('Invalid password reset link.', 'danger')
-
     if not user_for_reset:
         return redirect(url_for('login'))
-
     if request.method == 'POST':
         new_password = request.form['password']
         confirm_password = request.form['confirm_password']
-
         if new_password != confirm_password:
             flash('Passwords do not match.', 'danger')
             return render_template('reset_password.html', token=token)
-
-        # Hash new password and clear token
         hashed_password = generate_password_hash(new_password, method='pbkdf2:sha256')
         db.execute('UPDATE users SET password = ?, reset_token = NULL, reset_token_expires_at = NULL WHERE id = ?',
-                   (hashed_password, user_for_reset.id)) # Use user_for_reset.id
+                   (hashed_password, user_for_reset.id))
         db.commit()
-
         flash('Your password has been reset successfully! Please log in with your new password.', 'success')
         return redirect(url_for('login'))
-
     return render_template('reset_password.html', token=token)
 
-
-# --- Main Execution ---
-
-# Create UPLOAD_FOLDER if it doesn't exist
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
     print(f"Created upload folder: {UPLOAD_FOLDER}")
 
-# Call init_db() here, outside the if __name__ == '__main__': block
-# This ensures the database is initialized when Gunicorn starts the app.
 init_db()
 
 if __name__ == '__main__':
-    # Ensure schema.sql exists for init_db (this block will still run locally)
     if not os.path.exists('schema.sql'):
         print("Creating schema.sql for initial database setup...")
         with open('schema.sql', 'w') as f:
@@ -2070,7 +2056,6 @@ CREATE TABLE IF NOT EXISTS products (
     image_url TEXT,
     category TEXT NOT NULL DEFAULT 'Electronics'
 );
-
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
@@ -2081,7 +2066,6 @@ CREATE TABLE IF NOT EXISTS users (
     reset_token TEXT,
     reset_token_expires_at TEXT
 );
-
 CREATE TABLE IF NOT EXISTS cart_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
@@ -2091,7 +2075,6 @@ CREATE TABLE IF NOT EXISTS cart_items (
     FOREIGN KEY (product_id) REFERENCES products(id),
     UNIQUE(user_id, product_id)
 );
-
 CREATE TABLE IF NOT EXISTS addresses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
@@ -2106,7 +2089,6 @@ CREATE TABLE IF NOT EXISTS addresses (
     is_default BOOLEAN DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
-
 CREATE TABLE IF NOT EXISTS orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
@@ -2121,7 +2103,6 @@ CREATE TABLE IF NOT EXISTS orders (
     FOREIGN KEY (shipping_address_id) REFERENCES addresses(id),
     FOREIGN KEY (delivery_boy_id) REFERENCES delivery_boys(id)
 );
-
 CREATE TABLE IF NOT EXISTS order_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id INTEGER NOT NULL,
@@ -2131,12 +2112,10 @@ CREATE TABLE IF NOT EXISTS order_items (
     FOREIGN KEY (order_id) REFERENCES orders(id),
     FOREIGN KEY (product_id) REFERENCES products(id)
 );
-
 CREATE TABLE IF NOT EXISTS approved_pincodes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     pincode TEXT UNIQUE NOT NULL
 );
-
 CREATE TABLE IF NOT EXISTS delivery_boys (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -2146,7 +2125,6 @@ CREATE TABLE IF NOT EXISTS delivery_boys (
     user_id INTEGER UNIQUE,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
-
 CREATE TABLE IF NOT EXISTS delivery_boy_pincodes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     delivery_boy_id INTEGER NOT NULL,
@@ -2154,7 +2132,6 @@ CREATE TABLE IF NOT EXISTS delivery_boy_pincodes (
     FOREIGN KEY (delivery_boy_id) REFERENCES delivery_boys(id) ON DELETE CASCADE,
     UNIQUE(delivery_boy_id, pincode)
 );
-
 CREATE TABLE IF NOT EXISTS notifications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
@@ -2165,9 +2142,4 @@ CREATE TABLE IF NOT EXISTS notifications (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 """)
-    # When running locally, this init_db() will be called twice, but that's fine because
-    # the CREATE TABLE IF NOT EXISTS statements prevent errors.
-    # The important part is that it's guaranteed to run when Gunicorn imports the app.
-    # init_db() # Removed duplicate call for local execution, as it's now called unconditionally above.
-
     app.run(debug=True)
