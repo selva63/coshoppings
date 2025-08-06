@@ -1118,9 +1118,6 @@ def admin_add_delivery_boy():
                                    delivery_boy=delivery_boy_data,
                                    current_pincodes=pincodes_str,
                                    pincode_error=error_message)
-        if mobile_number == whatsapp_mobile_number:
-             flash('Mobile number and WhatsApp number cannot be the same. Please provide a different WhatsApp number.', 'danger')
-             return render_template('admin/add_edit_delivery_boy.html', delivery_boy=delivery_boy_data, current_pincodes=pincodes_str)
 
         if db.execute('SELECT id FROM delivery_boys WHERE mobile_number = ?', (mobile_number,)).fetchone():
             flash('A delivery boy with this mobile number already exists.', 'danger')
@@ -1185,10 +1182,6 @@ def admin_edit_delivery_boy(dboy_id):
             error_message = f"This pincode(s) {', '.join(unapproved_pincodes)} is not approved. Please approve it first."
             flash('Please correct the errors below.', 'danger')
             return render_template('admin/add_edit_delivery_boy.html', delivery_boy=delivery_boy, current_pincodes=pincodes_str, pincode_error=error_message)
-
-        if mobile_number == whatsapp_mobile_number:
-            flash('Mobile number and WhatsApp number cannot be the same. Please provide a different WhatsApp number.', 'danger')
-            return render_template('admin/add_edit_delivery_boy.html', delivery_boy=delivery_boy, current_pincodes=pincodes_str)
 
         if db.execute('SELECT id FROM delivery_boys WHERE mobile_number = ? AND id != ?', (mobile_number, dboy_id)).fetchone():
             flash('A delivery boy with this mobile number already exists.', 'danger')
