@@ -1740,7 +1740,7 @@ CREATE TABLE IF NOT EXISTS delivery_boys (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     mobile_number TEXT NOT NULL UNIQUE,
-    whatsapp_mobile_number TEXT NOT NULL,
+    whatsapp_mobile_number TEXT NOT NULL UNIQUE,
     email TEXT UNIQUE,
     user_id INTEGER UNIQUE,
     FOREIGN KEY (user_id) REFERENCES users(id)
