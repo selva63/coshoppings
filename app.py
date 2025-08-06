@@ -20,7 +20,7 @@ app = Flask(__name__)
 # For a production environment, set these on your cloud server.
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_very_secret_key_for_development_only')
 # Your provided Brevo API Key
-app.config['BREVO_API_KEY'] = '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'
+app.config['BREVO_API_KEY'] = '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'
 # Your provided verified sender email
 app.config['MAIL_DEFAULT_SENDER'] = 'clickorder6@gmail.com'
 
