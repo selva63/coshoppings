@@ -19,7 +19,6 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_very_secret_key_for_development_only')
 app.config['BREVO_API_KEY'] = os.environ.get('BREVO_API_KEY')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@yourdomain.com') # Fallback default sender
-app.config['SERVER_NAME'] = os.environ.get('SERVER_NAME')
 
 # Database configuration
 DATABASE = 'database.db'
