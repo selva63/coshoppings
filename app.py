@@ -12,22 +12,28 @@ from werkzeug.utils import secure_filename
 import secrets
 import sib_api_v3_sdk
 
+# Initialize Flask app
 app = Flask(__name__)
 
+# Load environment variables for configuration
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_very_secret_key_for_development_only')
 app.config['BREVO_API_KEY'] = os.environ.get('BREVO_API_KEY')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@yourdomain.com') # Fallback default sender
 
+# Database configuration
 DATABASE = 'database.db'
 
+# File upload configuration
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+# Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+# User class for Flask-Login
 class User(UserMixin):
     def __init__(self, id, username, password, is_admin=0, is_delivery_boy=0, email=None, reset_token=None, reset_token_expires_at=None):
         self.id = id
@@ -66,10 +72,12 @@ class User(UserMixin):
             return User(user_data['id'], user_data['username'], user_data['password'], user_data['is_admin'], user_data['is_delivery_boy'], user_data['email'], user_data['reset_token'], user_data['reset_token_expires_at'])
         return None
 
+# User loader for Flask-Login
 @login_manager.user_loader
 def load_user(user_id):
     return User.get(user_id)
 
+# Decorator to restrict access to admin users
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -82,6 +90,7 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# Decorator to restrict access to customers
 def customer_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -97,6 +106,7 @@ def customer_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# Decorator to restrict access to delivery boys
 def delivery_boy_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -113,6 +123,7 @@ def delivery_boy_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# Database connection helper function
 def get_db():
     db = getattr(g, '_database', None)
     if db is None:
@@ -120,21 +131,25 @@ def get_db():
         db.row_factory = sqlite3.Row
     return db
 
+# Close database connection at the end of the request
 @app.teardown_appcontext
 def close_connection(exception):
     db = getattr(g, '_database', None)
     if db is not None:
         db.close()
 
+# Initialize the database and tables
 def init_db():
     with app.app_context():
         db = get_db()
         cursor = db.cursor()
 
+        # Read schema from schema.sql
         with open('schema.sql', 'r') as f:
             db.executescript(f.read())
         db.commit()
 
+        # Check and add missing columns to the users table for password reset
         cursor.execute("PRAGMA table_info(users);")
         user_columns = [col[1] for col in cursor.fetchall()]
 
@@ -156,6 +171,7 @@ def init_db():
             print("Added 'reset_token_expires_at' column to users table.")
         db.commit()
 
+        # Create or update default admin user
         ADMIN_DEFAULT_PASSWORD = "Clickorder0505"
         hashed_password_for_admin = generate_password_hash(ADMIN_DEFAULT_PASSWORD, method='pbkdf2:sha256')
 
@@ -185,10 +201,12 @@ def init_db():
 
         print("Database initialization complete.")
 
+# Check if file extension is allowed
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# Create a notification in the database
 def create_notification(user_id, message, order_id=None):
     with app.app_context():
         db = get_db()
@@ -199,6 +217,7 @@ def create_notification(user_id, message, order_id=None):
         )
         db.commit()
 
+# Send email using Brevo (formerly Sendinblue) API
 def send_email(to_email, subject, body, html_body=None):
     api_key = app.config.get('BREVO_API_KEY')
     default_sender = app.config.get('MAIL_DEFAULT_SENDER')
@@ -228,6 +247,7 @@ def send_email(to_email, subject, body, html_body=None):
         print(f"Failed to send email to {to_email}: {e}")
         return False
 
+# Context processor to inject global variables into templates
 @app.context_processor
 def inject_globals():
     cart_count = 0
@@ -255,6 +275,7 @@ def inject_globals():
         unread_notification_count=unread_notification_count
     )
 
+# Home page route
 @app.route('/')
 def index():
     db = get_db()
@@ -282,6 +303,7 @@ def index():
                            selected_category=category,
                            categories=category_list)
 
+# Product detail page route
 @app.route('/product/<int:product_id>')
 def product_detail(product_id):
     db = get_db()
@@ -291,6 +313,7 @@ def product_detail(product_id):
         return redirect(url_for('index'))
     return render_template('product_detail.html', product=product)
 
+# User registration route
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
@@ -331,6 +354,7 @@ def register():
             return redirect(url_for('login'))
     return render_template('register.html')
 
+# User login route
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -361,6 +385,7 @@ def login():
             flash('Invalid username or password.', 'danger')
     return render_template('login.html')
 
+# User logout route
 @app.route('/logout')
 @login_required
 def logout():
@@ -368,6 +393,7 @@ def logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('index'))
 
+# Add item to cart route
 @app.route('/add_to_cart/<int:product_id>', methods=['POST'])
 @customer_required
 def add_to_cart(product_id):
@@ -409,6 +435,7 @@ def add_to_cart(product_id):
 
     return redirect(url_for('product_detail', product_id=product_id))
 
+# View shopping cart route
 @app.route('/cart')
 @customer_required
 def view_cart():
@@ -427,6 +454,7 @@ def view_cart():
 
     return render_template('cart.html', cart_items=cart_items, total_price=total_price, addresses=addresses)
 
+# Remove item from cart route
 @app.route('/remove_from_cart/<int:product_id>')
 @customer_required
 def remove_from_cart(product_id):
@@ -440,6 +468,18 @@ def remove_from_cart(product_id):
     flash('Item removed from cart.', 'info')
     return redirect(url_for('view_cart'))
 
+# View addresses route
+@app.route('/my_addresses')
+@customer_required
+def view_addresses():
+    user_id = current_user.id
+    db = get_db()
+    addresses = db.execute('SELECT * FROM addresses WHERE user_id = ? ORDER BY is_default DESC, id DESC', (user_id,)).fetchall()
+    next_flow = request.args.get('next_flow')
+    return render_template('view_addresses.html', addresses=addresses, next_flow=next_flow)
+
+
+# Add new address route
 @app.route('/add_address', methods=['GET', 'POST'])
 @customer_required
 def add_address():
@@ -491,6 +531,7 @@ def add_address():
 
     return render_template('add_address.html')
 
+# Edit address route
 @app.route('/edit_address/<int:address_id>', methods=['GET', 'POST'])
 @customer_required
 def edit_address(address_id):
@@ -541,6 +582,7 @@ def edit_address(address_id):
 
     return render_template('edit_address.html', address=address)
 
+# Delete address route
 @app.route('/delete_address/<int:address_id>', methods=['POST'])
 @customer_required
 def delete_address(address_id):
@@ -573,6 +615,7 @@ def delete_address(address_id):
     flash('Address deleted successfully!', 'success')
     return redirect(url_for('view_addresses'))
 
+# Buy now route (direct to checkout for a single item)
 @app.route('/buy_now/<int:product_id>', methods=['POST'])
 @customer_required
 def buy_now(product_id):
@@ -601,6 +644,7 @@ def buy_now(product_id):
     flash(f'Proceeding to checkout with {quantity} of "{product["name"]}".', 'info')
     return redirect(url_for('checkout_review', buy_now_flow='true'))
 
+# Checkout review page route
 @app.route('/checkout/review', methods=['GET', 'POST'])
 @customer_required
 def checkout_review():
@@ -609,13 +653,12 @@ def checkout_review():
     cart_items = []
     total_amount = 0.0
     shipping_address_id = None
-    is_buy_now_flow = False
+    is_buy_now_flow = request.args.get('buy_now_flow') == 'true'
 
-    if request.args.get('buy_now_flow') == 'true' and 'buy_now_product' in session:
+    if is_buy_now_flow and 'buy_now_product' in session:
         product_data = session['buy_now_product']
         cart_items = [product_data]
         total_amount = product_data['price'] * product_data['quantity']
-        is_buy_now_flow = True
         shipping_address_id = request.args.get('shipping_address_id')
         if not shipping_address_id:
             default_address = db.execute('SELECT id FROM addresses WHERE user_id = ? AND is_default = 1', (user_id,)).fetchone()
@@ -671,6 +714,7 @@ def checkout_review():
         is_buy_now_flow=is_buy_now_flow
     )
 
+# Place order route
 @app.route('/checkout/place_order', methods=['POST'])
 @customer_required
 def checkout_place_order():
@@ -768,6 +812,7 @@ def checkout_place_order():
             return redirect(url_for('checkout_review', buy_now_flow='true', shipping_address_id=shipping_address_id))
         return redirect(url_for('view_cart'))
 
+# View orders route for customers
 @app.route('/orders')
 @customer_required
 def view_orders():
@@ -794,18 +839,19 @@ def view_orders():
         orders_with_items.append(order)
     return render_template('view_orders.html', orders=orders_with_items)
 
+# Order detail page route for all user types
 @app.route('/order_detail/<int:order_id>')
 @login_required
 def order_detail(order_id):
     db = get_db()
     order_query = '''SELECT o.*,
-                         a.full_name, a.phone_number, a.address_line1, a.address_line2, a.city, a.state, a.zip_code, a.country,
-                         db.name as delivery_boy_name,
-                         db.mobile_number as delivery_boy_phone
-                         FROM orders o
-                         JOIN addresses a ON o.shipping_address_id = a.id
-                         LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.id
-                         WHERE o.id = ?'''
+                           a.full_name, a.phone_number, a.address_line1, a.address_line2, a.city, a.state, a.zip_code, a.country,
+                           db.name as delivery_boy_name,
+                           db.mobile_number as delivery_boy_phone
+                           FROM orders o
+                           JOIN addresses a ON o.shipping_address_id = a.id
+                           LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.id
+                           WHERE o.id = ?'''
     order = db.execute(order_query, (order_id,)).fetchone()
 
     if not order:
@@ -829,6 +875,7 @@ def order_detail(order_id):
                     has_permission = True
     elif order['user_id'] == current_user.id:
         has_permission = True
+    
     if not has_permission:
         if current_user.is_delivery_boy:
             is_taken_by_another = order['delivery_boy_id'] is not None and order['delivery_boy_id'] != delivery_boy_id
@@ -854,6 +901,7 @@ def order_detail(order_id):
     return render_template('order_detail.html', order=order, order_items=order_items, delivery_boy_id=delivery_boy_id)
 
 
+# Admin dashboard route
 @app.route('/admin')
 @admin_required
 def admin_dashboard():
@@ -920,6 +968,7 @@ def admin_dashboard():
                            cancelled_orders=cancelled_orders,
                            leaved_orders=leaved_orders)
 
+# Admin product management routes
 @app.route('/admin/products')
 @admin_required
 def admin_products():
@@ -1022,6 +1071,7 @@ def admin_delete_product(product_id):
         flash(f'Error deleting product: {e}', 'danger')
         return redirect(url_for('admin_products'))
 
+# Admin user management routes
 @app.route('/admin/users')
 @admin_required
 def admin_users():
@@ -1029,6 +1079,7 @@ def admin_users():
     users = db.execute('SELECT id, username, is_admin, is_delivery_boy FROM users ORDER BY id DESC').fetchall()
     return render_template('admin/users.html', users=users)
 
+# Admin order management routes
 @app.route('/admin/orders')
 @admin_required
 def admin_orders():
@@ -1043,6 +1094,7 @@ def admin_orders():
     ).fetchall()
     return render_template('admin/orders.html', orders=orders)
 
+# Admin pincode management routes
 @app.route('/admin/pincodes', methods=['GET', 'POST'])
 @admin_required
 def admin_pincodes():
@@ -1073,6 +1125,7 @@ def admin_pincodes():
     pincodes = db.execute('SELECT * FROM approved_pincodes ORDER BY pincode').fetchall()
     return render_template('admin/pincodes.html', pincodes=pincodes)
 
+# Admin delivery boy management routes
 @app.route('/admin/delivery_boys')
 @admin_required
 def admin_delivery_boys():
@@ -1190,8 +1243,8 @@ def admin_edit_delivery_boy(dboy_id):
             flash('A delivery boy with this email address already exists.', 'danger')
             return render_template('admin/add_edit_delivery_boy.html', delivery_boy=delivery_boy, current_pincodes=pincodes_str)
         if User.get_by_email(email) and User.get_by_email(email).id != delivery_boy['user_id']:
-             flash('This email address is already used by an existing user. Please use a different one.', 'danger')
-             return render_template('admin/add_edit_delivery_boy.html', delivery_boy=delivery_boy, current_pincodes=pincodes_str)
+            flash('This email address is already used by an existing user. Please use a different one.', 'danger')
+            return render_template('admin/add_edit_delivery_boy.html', delivery_boy=delivery_boy, current_pincodes=pincodes_str)
         if db.execute('SELECT id FROM delivery_boys WHERE whatsapp_mobile_number = ? AND id != ?', (whatsapp_mobile_number, dboy_id)).fetchone():
             flash('A delivery boy with this WhatsApp mobile number already exists.', 'danger')
             return render_template('admin/add_edit_delivery_boy.html', delivery_boy=delivery_boy, current_pincodes=pincodes_str)
@@ -1264,6 +1317,7 @@ def admin_send_delivery_boy_link(dboy_id):
                            email_url=email_url)
 
 
+# Delivery boy registration route
 @app.route('/delivery_boy_register/<int:delivery_boy_id>', methods=['GET', 'POST'])
 def delivery_boy_register(delivery_boy_id):
     db = get_db()
@@ -1308,6 +1362,7 @@ def delivery_boy_register(delivery_boy_id):
             db.rollback()
     return render_template('delivery_boy_register.html', delivery_boy_id=delivery_boy_id, dboy_name=dboy['name'])
 
+# Delivery boy dashboard route
 @app.route('/delivery_boy_dashboard')
 @delivery_boy_required
 def delivery_boy_dashboard():
@@ -1386,6 +1441,7 @@ def delivery_boy_dashboard():
                            leaved_orders=leaved_orders,
                            leaved_orders_count=leaved_orders_count)
 
+# Delivery boy actions routes
 @app.route('/delivery/take_order/<int:order_id>', methods=['POST'])
 @delivery_boy_required
 def take_order(order_id):
@@ -1470,6 +1526,7 @@ def leave_order(order_id):
     flash(f'You have left Order #{order_id}. It is now available for other delivery boys.', 'info')
     return redirect(url_for('delivery_boy_dashboard'))
 
+# Customer order cancellation route
 @app.route('/customer/cancel_order/<int:order_id>', methods=['POST'])
 @customer_required
 def cancel_order_by_customer(order_id):
@@ -1497,6 +1554,7 @@ def cancel_order_by_customer(order_id):
     flash('Your order has been successfully cancelled.', 'success')
     return redirect(url_for('order_detail', order_id=order_id))
 
+# Notification routes
 @app.route('/notifications')
 @login_required
 def get_notifications():
@@ -1538,6 +1596,7 @@ def clear_all_notifications():
     db.commit()
     return jsonify({'success': True, 'message': 'All notifications cleared.'}), 200
 
+# Forgot username route
 @app.route('/forgot_username', methods=['GET', 'POST'])
 def forgot_username():
     if current_user.is_authenticated:
@@ -1546,7 +1605,7 @@ def forgot_username():
         email = request.form['email'].strip()
         user = User.get_by_email(email)
         flash_message = 'If an account with that email exists, your username has been sent to your email.'
-        if user:
+        if user and user.email: # Check if email exists before trying to send
             plain_body = f"Hello,\n\nHere is your username for CO: {user.username}\n\nIf you did not request this, please ignore this email."
             html_body = f"""
             <div style="font-family: sans-serif; line-height: 1.6; color: #333;">
@@ -1565,6 +1624,7 @@ def forgot_username():
         return redirect(url_for('login'))
     return render_template('forgot_username.html')
 
+# Forgot password route
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if current_user.is_authenticated:
@@ -1574,7 +1634,7 @@ def forgot_password():
         user = User.get_by_email(email)
         db = get_db()
         flash_message = 'If an account with that email exists, a password reset link has been sent to your email.'
-        if user:
+        if user and user.email: # Check if email exists before trying to send
             token = secrets.token_urlsafe(32)
             expires_at = datetime.now() + timedelta(hours=1)
             db.execute('UPDATE users SET reset_token = ?, reset_token_expires_at = ? WHERE id = ?',
@@ -1620,6 +1680,7 @@ def forgot_password():
         return redirect(url_for('login'))
     return render_template('forgot_password.html')
 
+# Password reset route
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     if current_user.is_authenticated:
@@ -1641,8 +1702,10 @@ def reset_password(token):
             flash('Invalid or expired password reset link.', 'danger')
     else:
         flash('Invalid password reset link.', 'danger')
+    
     if not user_for_reset:
         return redirect(url_for('login'))
+
     if request.method == 'POST':
         new_password = request.form['password']
         confirm_password = request.form['confirm_password']
@@ -1655,6 +1718,7 @@ def reset_password(token):
         db.commit()
         flash('Your password has been reset successfully! Please log in with your new password.', 'success')
         return redirect(url_for('login'))
+        
     return render_template('reset_password.html', token=token)
 
 if not os.path.exists(UPLOAD_FOLDER):
