@@ -1624,57 +1624,37 @@ def forgot_password():
 def reset_password(token):
     if current_user.is_authenticated:
         return redirect(url_for('index'))
-    
     db = get_db()
-    
-    # First, check if a user exists with this token.
-    user_data = db.execute(
-        'SELECT id, username, email, reset_token, reset_token_expires_at FROM users WHERE reset_token = ?',
-        (token,)
-    ).fetchone()
-
-    # If no user is found, the token is invalid.
-    if not user_data:
-        flash('Invalid or expired password reset link.', 'danger')
-        return redirect(url_for('login'))
-
+    user_data = db.execute('SELECT id, username, email, reset_token, reset_token_expires_at FROM users WHERE reset_token = ?', (token,)).fetchone()
     user_for_reset = None
-    
-    # Now that we know user_data exists, we can safely check its values.
-    try:
-        expires_at = datetime.fromisoformat(user_data['reset_token_expires_at'])
-        
-        if expires_at > datetime.now():
-            user_for_reset = User(user_data['id'], user_data['username'], None, email=user_data['email'])
+    if user_data:
+        if user_data['reset_token'] == token and user_data['reset_token_expires_at']:
+            try:
+                expires_at = datetime.fromisoformat(user_data['reset_token_expires_at'])
+                if expires_at > datetime.now():
+                    user_for_reset = User(user_data['id'], user_data['username'], None, email=user_data['email'])
+                else:
+                    flash('Password reset link has expired. Please request a new one.', 'danger')
+            except ValueError:
+                flash('Invalid reset token or format. Please request a new one.', 'danger')
         else:
-            flash('Password reset link has expired. Please request a new one.', 'danger')
-            # Clear the expired token from the database
-            db.execute('UPDATE users SET reset_token = NULL, reset_token_expires_at = NULL WHERE id = ?', (user_data['id'],))
-            db.commit()
-            return redirect(url_for('login'))
-    except (ValueError, TypeError):
-        flash('Invalid reset token format. Please request a new one.', 'danger')
-        return redirect(url_for('login'))
-
+            flash('Invalid or expired password reset link.', 'danger')
+    else:
+        flash('Invalid password reset link.', 'danger')
     if not user_for_reset:
         return redirect(url_for('login'))
-
     if request.method == 'POST':
         new_password = request.form['password']
         confirm_password = request.form['confirm_password']
-
         if new_password != confirm_password:
             flash('Passwords do not match.', 'danger')
             return render_template('reset_password.html', token=token)
-
         hashed_password = generate_password_hash(new_password, method='pbkdf2:sha256')
         db.execute('UPDATE users SET password = ?, reset_token = NULL, reset_token_expires_at = NULL WHERE id = ?',
                    (hashed_password, user_for_reset.id))
         db.commit()
-
         flash('Your password has been reset successfully! Please log in with your new password.', 'success')
         return redirect(url_for('login'))
-
     return render_template('reset_password.html', token=token)
 
 if not os.path.exists(UPLOAD_FOLDER):
