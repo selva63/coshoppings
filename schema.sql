@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
     is_admin BOOLEAN NOT NULL DEFAULT 0,
     is_delivery_boy BOOLEAN NOT NULL DEFAULT 0,
     -- NEW: Columns for password reset functionality
-    email TEXT UNIQUE, -- Added to allow sending reset links/usernames
+    email TEXT UNIQUE,
     reset_token TEXT,
     reset_token_expires_at TEXT
 );
@@ -54,21 +54,22 @@ CREATE TABLE IF NOT EXISTS orders (
     status TEXT NOT NULL DEFAULT 'Pending',
     shipping_address_id INTEGER NOT NULL,
     payment_method TEXT NOT NULL DEFAULT 'Cash on Delivery',
-    delivery_boy_id INTEGER, -- To link the assigned delivery boy
-    cancellation_reason TEXT, -- To store reason for cancellation or leaving order
+    delivery_boy_id INTEGER,
+    cancellation_reason TEXT,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (shipping_address_id) REFERENCES addresses(id),
-    FOREIGN KEY (delivery_boy_id) REFERENCES delivery_boys(id) -- Foreign key constraint
+    FOREIGN KEY (delivery_boy_id) REFERENCES delivery_boys(id)
 );
 
 CREATE TABLE IF NOT EXISTS order_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id INTEGER NOT NULL,
-    product_id INTEGER NOT NULL,
-    quantity INTEGER NOT NULL,
+    product_id INTEGER, -- We keep this for historical reference, but it can be NULL if the product is deleted
+    product_name TEXT NOT NULL, -- NEW: Storing product name at time of purchase
     price_at_purchase REAL NOT NULL,
-    FOREIGN KEY (order_id) REFERENCES orders(id),
-    FOREIGN KEY (product_id) REFERENCES products(id)
+    quantity INTEGER NOT NULL,
+    image_url TEXT, -- NEW: Storing image URL at time of purchase
+    FOREIGN KEY (order_id) REFERENCES orders(id)
 );
 
 CREATE TABLE IF NOT EXISTS approved_pincodes (

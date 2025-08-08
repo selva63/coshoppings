@@ -7,7 +7,7 @@
 
 <div class="bg-white rounded-xl shadow-lg p-4 md:p-6 mb-8">
     {% if orders %}
-        <!-- ##### UPDATED: Adjusted columns to add an "ACTION" header ##### -->
+        <!-- Desktop/Tablet view -->
         <div class="hidden md:grid md:grid-cols-12 gap-4 font-bold text-left text-xs text-gray-500 uppercase tracking-wider px-4 py-3 border-b">
             <div class="col-span-1">Order ID</div>
             <div class="col-span-2">Date</div>
@@ -17,9 +17,10 @@
             <div class="col-span-1 text-right">Action</div>
         </div>
 
+        <!-- Order list items -->
         <div class="grid grid-cols-1 gap-4 md:space-y-0">
             {% for order in orders %}
-            <!-- Mobile view remains unchanged -->
+            <!-- Mobile view -->
             <div class="md:hidden bg-gray-50 rounded-lg p-4 border border-gray-200 space-y-3">
                 <div class="flex justify-between items-center pb-2 border-b">
                     <p class="text-sm font-medium text-gray-500">Order ID</p>
@@ -30,7 +31,7 @@
                     {% if order.order_items %}
                         <ul class="list-disc list-inside text-sm text-gray-700 pl-2">
                         {% for item in order.order_items %}
-                            <li>{{ item.name }} (Qty: {{ item.quantity }})</li>
+                            <li>{{ item.product_name }} (Qty: {{ item.quantity }})</li>
                         {% endfor %}
                         </ul>
                     {% else %} N/A {% endif %}
@@ -57,7 +58,7 @@
                 </div>
             </div>
 
-            <!-- ##### UPDATED: Separated Status and Action into their own columns ##### -->
+            <!-- Desktop/Tablet view item row -->
             <div class="hidden md:grid md:grid-cols-12 gap-4 items-center border-b last:border-b-0 hover:bg-gray-50 transition duration-200 p-4">
                 <div class="col-span-1 text-sm font-medium text-gray-900">#{{ order.id }}</div>
                 <div class="col-span-2 text-sm text-gray-500">{{ order.order_date }}</div>
@@ -65,7 +66,7 @@
                     {% if order.order_items %}
                         <ul class="list-disc list-inside">
                         {% for item in order.order_items %}
-                            <li class="truncate">{{ item.name }} (Qty: {{ item.quantity }})</li>
+                            <li class="truncate">{{ item.product_name }} (Qty: {{ item.quantity }})</li>
                         {% endfor %}
                         </ul>
                     {% else %} N/A {% endif %}

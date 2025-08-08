@@ -8,7 +8,7 @@ from functools import wraps
 import urllib.parse
 from werkzeug.utils import secure_filename
 import secrets
-import sib_api_v3_sdk
+import sib_api_v3_sdk # Brevo SDK for sending emails
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -48,26 +48,65 @@ class User(UserMixin):
 
     @staticmethod
     def get(user_id):
+        """Fetches a user by ID, including all new fields."""
         db = get_db()
-        user_data = db.execute('SELECT id, username, password, is_admin, is_delivery_boy, email, reset_token, reset_token_expires_at FROM users WHERE id = ?', (user_id,)).fetchone()
+        user_data = db.execute(
+            'SELECT id, username, password, is_admin, is_delivery_boy, email, reset_token, reset_token_expires_at FROM users WHERE id = ?',
+            (user_id,)
+        ).fetchone()
         if user_data:
-            return User(user_data['id'], user_data['username'], user_data['password'], user_data['is_admin'], user_data['is_delivery_boy'], user_data['email'], user_data['reset_token'], user_data['reset_token_expires_at'])
+            return User(
+                user_data['id'],
+                user_data['username'],
+                user_data['password'],
+                user_data['is_admin'],
+                user_data['is_delivery_boy'],
+                user_data['email'],
+                user_data['reset_token'],
+                user_data['reset_token_expires_at']
+            )
         return None
 
     @staticmethod
     def get_by_username(username):
+        """Fetches a user by username, including all new fields."""
         db = get_db()
-        user_data = db.execute('SELECT id, username, password, is_admin, is_delivery_boy, email, reset_token, reset_token_expires_at FROM users WHERE username = ?', (username,)).fetchone()
+        user_data = db.execute(
+            'SELECT id, username, password, is_admin, is_delivery_boy, email, reset_token, reset_token_expires_at FROM users WHERE username = ?',
+            (username,)
+        ).fetchone()
         if user_data:
-            return User(user_data['id'], user_data['username'], user_data['password'], user_data['is_admin'], user_data['is_delivery_boy'], user_data['email'], user_data['reset_token'], user_data['reset_token_expires_at'])
+            return User(
+                user_data['id'],
+                user_data['username'],
+                user_data['password'],
+                user_data['is_admin'],
+                user_data['is_delivery_boy'],
+                user_data['email'],
+                user_data['reset_token'],
+                user_data['reset_token_expires_at']
+            )
         return None
 
     @staticmethod
     def get_by_email(email):
+        """Fetches a user by email, including all new fields."""
         db = get_db()
-        user_data = db.execute('SELECT id, username, password, is_admin, is_delivery_boy, email, reset_token, reset_token_expires_at FROM users WHERE email = ?', (email,)).fetchone()
+        user_data = db.execute(
+            'SELECT id, username, password, is_admin, is_delivery_boy, email, reset_token, reset_token_expires_at FROM users WHERE email = ?',
+            (email,)
+        ).fetchone()
         if user_data:
-            return User(user_data['id'], user_data['username'], user_data['password'], user_data['is_admin'], user_data['is_delivery_boy'], user_data['email'], user_data['reset_token'], user_data['reset_token_expires_at'])
+            return User(
+                user_data['id'],
+                user_data['username'],
+                user_data['password'],
+                user_data['is_admin'],
+                user_data['is_delivery_boy'],
+                user_data['email'],
+                user_data['reset_token'],
+                user_data['reset_token_expires_at']
+            )
         return None
 
 # User loader for Flask-Login
@@ -626,6 +665,7 @@ def buy_now(product_id):
         flash('Invalid quantity provided.', 'danger')
         return redirect(url_for('product_detail', product_id=product_id))
 
+    # Store the single product item in the session
     session['buy_now_product'] = {
         'id': product['id'],
         'name': product['name'],
@@ -634,6 +674,8 @@ def buy_now(product_id):
         'image_url': product['image_url']
     }
     flash(f'Proceeding to checkout with {quantity} of "{product["name"]}".', 'info')
+
+    # Redirect to checkout review with a flag and no address yet
     return redirect(url_for('checkout_review', buy_now_flow='true'))
 
 # Checkout review page route
@@ -647,20 +689,16 @@ def checkout_review():
     shipping_address_id = None
     is_buy_now_flow = request.args.get('buy_now_flow') == 'true'
 
-    if is_buy_now_flow and 'buy_now_product' in session:
+    if is_buy_now_flow:
+        # Get product from session for buy now flow
+        if 'buy_now_product' not in session:
+            flash('Buy Now session expired or invalid. Please try again.', 'warning')
+            return redirect(url_for('index'))
         product_data = session['buy_now_product']
         cart_items = [product_data]
         total_amount = product_data['price'] * product_data['quantity']
-        shipping_address_id = request.args.get('shipping_address_id')
-        if not shipping_address_id:
-            default_address = db.execute('SELECT id FROM addresses WHERE user_id = ? AND is_default = 1', (user_id,)).fetchone()
-            if default_address:
-                shipping_address_id = default_address['id']
-        if not shipping_address_id:
-            flash('Please select a shipping address to proceed with your order.', 'warning')
-            return redirect(url_for('view_addresses', next_flow='buy_now_checkout'))
     else:
-        shipping_address_id = request.form.get('shipping_address_id')
+        # Get items from regular cart
         cart_items = db.execute(
             '''SELECT ci.product_id AS id, p.name, p.price, ci.quantity, p.image_url
                FROM cart_items ci
@@ -674,6 +712,16 @@ def checkout_review():
         flash('Your order is empty. Please add products before checking out.', 'warning')
         return redirect(url_for('index'))
 
+    # Get shipping address from form or URL parameter, or fallback to default
+    if request.method == 'POST':
+        shipping_address_id = request.form.get('shipping_address_id')
+    elif request.method == 'GET' and request.args.get('shipping_address_id'):
+        shipping_address_id = request.args.get('shipping_address_id')
+    else:
+        default_address = db.execute('SELECT id FROM addresses WHERE user_id = ? AND is_default = 1', (user_id,)).fetchone()
+        if default_address:
+            shipping_address_id = default_address['id']
+    
     shipping_address = None
     if shipping_address_id:
         shipping_address_row = db.execute(
@@ -683,17 +731,18 @@ def checkout_review():
         if shipping_address_row:
             shipping_address = dict(shipping_address_row)
 
-    if shipping_address:
-        approved_pincodes_data = db.execute('SELECT pincode FROM approved_pincodes').fetchall()
-        allowed_pincodes = [p['pincode'] for p in approved_pincodes_data]
-
-        if shipping_address['zip_code'] not in allowed_pincodes:
-            flash(f'We will deliver soon for {shipping_address["zip_code"]}. Please select a different address or add a new one.', 'warning')
-            if is_buy_now_flow:
-                return redirect(url_for('view_addresses', next_flow='buy_now_checkout'))
-            return redirect(url_for('view_cart'))
-    else:
-        flash('Please select a valid shipping address.', 'error')
+    if not shipping_address:
+        flash('Please select a shipping address to proceed with your order.', 'warning')
+        # Redirect to address page, ensuring we return to the correct checkout flow
+        if is_buy_now_flow:
+            return redirect(url_for('view_addresses', next_flow='buy_now_checkout'))
+        return redirect(url_for('view_cart'))
+    
+    # Final check on pincode validity
+    approved_pincodes_data = db.execute('SELECT pincode FROM approved_pincodes').fetchall()
+    allowed_pincodes = [p['pincode'] for p in approved_pincodes_data]
+    if shipping_address['zip_code'] not in allowed_pincodes:
+        flash(f'We will deliver soon for {shipping_address["zip_code"]}. Please select a different address or add a new one.', 'warning')
         if is_buy_now_flow:
             return redirect(url_for('view_addresses', next_flow='buy_now_checkout'))
         return redirect(url_for('view_cart'))
@@ -719,8 +768,8 @@ def checkout_place_order():
     address = db.execute('SELECT * FROM addresses WHERE id = ? AND user_id = ?', (shipping_address_id, user_id)).fetchone()
     if not address:
         flash('Invalid shipping address. Please try again.', 'error')
-        if is_buy_now_flow:
-            return redirect(url_for('view_addresses', next_flow='buy_now_checkout'))
+        if is_buy_now_flow and 'buy_now_product' in session:
+            return redirect(url_for('checkout_review', buy_now_flow='true'))
         return redirect(url_for('view_cart'))
 
     order_items_to_process = []
@@ -732,8 +781,9 @@ def checkout_place_order():
         order_items_to_process = [product_data]
         session.pop('buy_now_product', None)
     else:
+        # Fetch cart items along with product name and image_url
         order_items_to_process = db.execute(
-            '''SELECT ci.product_id AS id, p.name, p.price, ci.quantity
+            '''SELECT ci.product_id AS id, p.name, p.price, ci.quantity, p.image_url
                FROM cart_items ci
                JOIN products p ON ci.product_id = p.id
                WHERE ci.user_id = ?''',
@@ -746,18 +796,17 @@ def checkout_place_order():
 
     if not payment_method:
         flash('Please select a payment method.', 'warning')
-        if is_buy_now_flow:
-            session['buy_now_product'] = order_items_to_process[0]
-            return redirect(url_for('checkout_review', buy_now_flow='true', shipping_address_id=shipping_address_id))
-        return redirect(url_for('checkout_review', shipping_address_id=shipping_address_id))
+        # Re-populate session for buy now flow to allow user to try again
+        if is_buy_now_flow and 'buy_now_product' not in session:
+             session['buy_now_product'] = order_items_to_process[0]
+        return redirect(url_for('checkout_review', buy_now_flow=str(is_buy_now_flow).lower(), shipping_address_id=shipping_address_id))
 
     order_status = 'Pending'
     if payment_method != 'Cash on Delivery':
         flash('Invalid payment method selected.', 'danger')
-        if is_buy_now_flow:
+        if is_buy_now_flow and 'buy_now_product' not in session:
             session['buy_now_product'] = order_items_to_process[0]
-            return redirect(url_for('checkout_review', buy_now_flow='true', shipping_address_id=shipping_address_id))
-        return redirect(url_for('checkout_review', shipping_address_id=shipping_address_id))
+        return redirect(url_for('checkout_review', buy_now_flow=str(is_buy_now_flow).lower(), shipping_address_id=shipping_address_id))
 
     total_amount = sum(item['price'] * item['quantity'] for item in order_items_to_process)
     order_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -769,9 +818,10 @@ def checkout_place_order():
         )
         order_id = cursor.lastrowid
         for item in order_items_to_process:
+            # UPDATED: Insert product_name and image_url into order_items table
             db.execute(
-                'INSERT INTO order_items (order_id, product_id, quantity, price_at_purchase) VALUES (?, ?, ?, ?)',
-                (order_id, item['id'], item['quantity'], item['price'])
+                'INSERT INTO order_items (order_id, product_id, product_name, quantity, price_at_purchase, image_url) VALUES (?, ?, ?, ?, ?, ?)',
+                (order_id, item['id'], item['name'], item['quantity'], item['price'], item['image_url'])
             )
         if not is_buy_now_flow:
             db.execute('DELETE FROM cart_items WHERE user_id = ?', (user_id,))
@@ -801,8 +851,7 @@ def checkout_place_order():
         flash(f'An error occurred during checkout: {e}', 'error')
         if is_buy_now_flow:
             session['buy_now_product'] = order_items_to_process[0]
-            return redirect(url_for('checkout_review', buy_now_flow='true', shipping_address_id=shipping_address_id))
-        return redirect(url_for('view_cart'))
+        return redirect(url_for('checkout_review', buy_now_flow=str(is_buy_now_flow).lower(), shipping_address_id=shipping_address_id))
 
 # View orders route for customers
 @app.route('/orders')
@@ -821,9 +870,9 @@ def view_orders():
     orders_with_items = []
     for order_row in orders_raw:
         order = dict(order_row)
+        # UPDATED: Fetch product_name from order_items table directly
         order_items = db.execute(
-            '''SELECT p.name, oi.quantity FROM order_items oi
-               JOIN products p ON oi.product_id = p.id
+            '''SELECT oi.product_name, oi.quantity FROM order_items oi
                WHERE oi.order_id = ?''',
             (order['id'],)
         ).fetchall()
@@ -837,13 +886,13 @@ def view_orders():
 def order_detail(order_id):
     db = get_db()
     order_query = '''SELECT o.*,
-                          a.full_name, a.phone_number, a.address_line1, a.address_line2, a.city, a.state, a.zip_code, a.country,
-                          db.name as delivery_boy_name,
-                          db.mobile_number as delivery_boy_phone
-                          FROM orders o
-                          JOIN addresses a ON o.shipping_address_id = a.id
-                          LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.id
-                          WHERE o.id = ?'''
+                           a.full_name, a.phone_number, a.address_line1, a.address_line2, a.city, a.state, a.zip_code, a.country,
+                           db.name as delivery_boy_name,
+                           db.mobile_number as delivery_boy_phone
+                           FROM orders o
+                           JOIN addresses a ON o.shipping_address_id = a.id
+                           LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.id
+                           WHERE o.id = ?'''
     order = db.execute(order_query, (order_id,)).fetchone()
 
     if not order:
@@ -882,10 +931,10 @@ def order_detail(order_id):
             flash('You do not have permission to view this order.', 'danger')
             return redirect(url_for('view_orders'))
 
+    # UPDATED: Fetch product details directly from the order_items table
     order_items = db.execute(
-        '''SELECT oi.quantity, oi.price_at_purchase, p.name, p.image_url
+        '''SELECT oi.quantity, oi.price_at_purchase, oi.product_name, oi.image_url
            FROM order_items oi
-           JOIN products p ON oi.product_id = p.id
            WHERE oi.order_id = ?''',
         (order_id,)
     ).fetchall()
@@ -910,9 +959,9 @@ def admin_dashboard():
         orders_with_items = []
         for order_row in orders_list:
             order = dict(order_row)
+            # UPDATED: Fetch product name from the order_items table
             order_items = db.execute(
-                '''SELECT p.name, oi.quantity FROM order_items oi
-                   JOIN products p ON oi.product_id = p.id
+                '''SELECT oi.product_name, oi.quantity FROM order_items oi
                    WHERE oi.order_id = ?''',
                 (order['id'],)
             ).fetchall()
@@ -1051,7 +1100,9 @@ def admin_edit_product(product_id):
 def admin_delete_product(product_id):
     db = get_db()
     try:
-        db.execute('DELETE FROM cart_items WHERE product_id = ?', (product_id,))
+        # UPDATED: When a product is deleted, we update the product_id to NULL
+        # in the order_items table. This preserves the historical order details.
+        db.execute('UPDATE order_items SET product_id = NULL WHERE product_id = ?', (product_id,))
         db.execute('DELETE FROM products WHERE id = ?', (product_id,))
         db.commit()
         flash('Product deleted successfully!', 'success')
@@ -1380,9 +1431,9 @@ def delivery_boy_dashboard():
         orders_with_items = []
         for order_row in orders_list:
             order = dict(order_row)
+            # UPDATED: Fetch product name from the order_items table
             order_items = db.execute(
-                '''SELECT p.name, oi.quantity FROM order_items oi
-                   JOIN products p ON oi.product_id = p.id
+                '''SELECT oi.product_name, oi.quantity FROM order_items oi
                    WHERE oi.order_id = ?''',
                 (order['id'],)
             ).fetchall()
@@ -1686,7 +1737,7 @@ def reset_password(token):
     if user_data:
         if user_data['reset_token'] == token and user_data['reset_token_expires_at']:
             try:
-                expires_at = datetime.strptime(user_data['reset_token_expires_at'], '%Y-%m-%dT%H:%M:%S.%f')
+                expires_at = datetime.fromisoformat(user_data['reset_token_expires_at'])
                 if expires_at > datetime.now():
                     # Corrected: Instantiate the User object with all required data
                     user_for_reset = User(
@@ -1796,11 +1847,12 @@ CREATE TABLE IF NOT EXISTS orders (
 CREATE TABLE IF NOT EXISTS order_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id INTEGER NOT NULL,
-    product_id INTEGER NOT NULL,
-    quantity INTEGER NOT NULL,
+    product_id INTEGER,
+    product_name TEXT NOT NULL,
     price_at_purchase REAL NOT NULL,
-    FOREIGN KEY (order_id) REFERENCES orders(id),
-    FOREIGN KEY (product_id) REFERENCES products(id)
+    quantity INTEGER NOT NULL,
+    image_url TEXT,
+    FOREIGN KEY (order_id) REFERENCES orders(id)
 );
 CREATE TABLE IF NOT EXISTS approved_pincodes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

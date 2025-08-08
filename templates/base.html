@@ -8,7 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400&display=swap" rel="stylesheet">
+    {# UPDATED: Loading the new, stylish 'Grindy Brush' font from a custom source #}
+    <link href="https://fonts.cdnfonts.com/css/grindy-brush" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
         /* Custom font for better aesthetics */
@@ -16,7 +17,9 @@
             font-family: 'Roboto', sans-serif;
         }
         .logo-font {
-            font-family: 'Playfair Display', serif;
+            /* UPDATED: Changed font to Grindy Brush for a bold and unique look */
+            font-family: 'Grindy Brush', sans-serif;
+            font-weight: bold;
         }
         /* Style for unread notifications */
         .notification-item.unread {
@@ -35,7 +38,8 @@
     <header class="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
         <nav class="py-4 px-6 md:px-12 flex justify-between items-center">
             <div class="flex justify-between items-center w-full md:w-auto">
-                <a href="/" class="flex items-baseline gap-2" style="color: #D4AF37; text-shadow: 1px 1px 3px rgba(0,0,0,0.2);">
+                {# UPDATED: Changed the text color to match the footer's background color #}
+                <a href="/" class="flex items-baseline gap-2 text-gray-800" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.2);">
                     <span class="text-3xl font-extrabold tracking-wider logo-font">🛒 CO</span> {# Changed DRS to CO #}
                     <span class="text-xl font-normal logo-font">Shopping</span>
                 </a>
@@ -90,198 +94,198 @@
                     <input type="text" name="q" placeholder="Search products..."
                            class="flex-grow px-4 text-gray-700 bg-white focus:outline-none rounded-l-full h-full"
                            value="{{ search_query if search_query else '' }}">
-                    <button type="submit" class="bg-blue-600 text-white px-4 hover:bg-blue-700 transition duration-200 rounded-r-full h-full flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
-                    </button>
-                </div>
-            </form>
-            {% if current_user.is_authenticated %}
-            <div class="relative">
-                <button id="notification-button-mobile" class="text-gray-600 hover:text-blue-600 p-2 rounded-full transition duration-300 flex-shrink-0" title="Notifications">
-                    {{ bell_icon | safe }}
-                    {% if unread_notification_count > 0 %}
-                    <span id="notification-count-mobile" class="absolute top-0 right-0 block h-5 w-5 rounded-full bg-red-600 text-white text-xs flex items-center justify-center">{{ unread_notification_count }}</span>
-                    {% endif %}
-                </button>
-                <div id="notification-panel-mobile" class="hidden absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-xl overflow-hidden z-50 border">
-                    <div class="flex justify-between items-center py-2 px-4 font-bold text-gray-800 border-b">
-                        <span>Notifications</span>
-                        <button id="clear-all-mobile" class="text-xs font-semibold text-blue-600 hover:bg-blue-50 focus:outline-none p-1 rounded-md transition-colors">Clear All</button>
+                        <button type="submit" class="bg-blue-600 text-white px-4 hover:bg-blue-700 transition duration-200 rounded-r-full h-full flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
+                        </button>
                     </div>
-                    <div id="notification-list-mobile" class="divide-y max-h-80 overflow-y-auto"></div>
-                    <div id="notification-empty-mobile" class="p-4 text-center text-gray-500 hidden">You have no new notifications.</div>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-
-        <div id="navbar-links-mobile-content" class="hidden md:hidden bg-white p-4 border-t shadow-lg flex flex-col space-y-3">
-            {% include 'nav_links.html' %}
-        </div>
-    </header>
-
-
-    <main class="container mx-auto p-4 flex-grow pt-40 md:pt-28">
-        {# Flash messages display #}
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="mb-4">
-                    {% for category, message in messages %}
-                        <div class="p-3 mb-2 rounded-lg text-sm
-                            {% if category == 'success' %} bg-green-100 text-green-700
-                            {% elif category == 'error' or category == 'danger' %} bg-red-100 text-red-700
-                            {% elif category == 'warning' %} bg-yellow-100 text-yellow-700
-                            {% else %} bg-blue-100 text-blue-700
-                            {% endif %}">
-                            {{ message }}
+                </form>
+                {% if current_user.is_authenticated %}
+                <div class="relative">
+                    <button id="notification-button-mobile" class="text-gray-600 hover:text-blue-600 p-2 rounded-full transition duration-300 flex-shrink-0" title="Notifications">
+                        {{ bell_icon | safe }}
+                        {% if unread_notification_count > 0 %}
+                        <span id="notification-count-mobile" class="absolute top-0 right-0 block h-5 w-5 rounded-full bg-red-600 text-white text-xs flex items-center justify-center">{{ unread_notification_count }}</span>
+                        {% endif %}
+                    </button>
+                    <div id="notification-panel-mobile" class="hidden absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-xl overflow-hidden z-50 border">
+                        <div class="flex justify-between items-center py-2 px-4 font-bold text-gray-800 border-b">
+                            <span>Notifications</span>
+                            <button id="clear-all-mobile" class="text-xs font-semibold text-blue-600 hover:bg-blue-50 focus:outline-none p-1 rounded-md transition-colors">Clear All</button>
                         </div>
-                    {% endfor %}
+                        <div id="notification-list-mobile" class="divide-y max-h-80 overflow-y-auto"></div>
+                        <div id="notification-empty-mobile" class="p-4 text-center text-gray-500 hidden">You have no new notifications.</div>
+                    </div>
                 </div>
-            {% endif %}
-        {% endwith %}
-
-        {% block content %}{% endblock %}
-    </main>
-
-    <footer class="bg-gray-800 text-white text-center py-6 mt-12">
-        <p>&copy; 2025 CO Shopping. All rights reserved.</p> {# Changed DRS Shopping to CO #}
-        <p class="text-sm mt-2">Location: Peravurani | Contact: 7418570770, 6374040241</p>
-    </footer>
-
-    <script>
-        // JavaScript for mobile menu toggle
-        document.getElementById('menu-toggle').addEventListener('click', function() {
-            var mobileMenu = document.getElementById('navbar-links-mobile-content');
-            mobileMenu.classList.toggle('hidden');
-        });
-
-        // --- Notification Panel Logic ---
-        function initializeNotificationPanel(buttonId, panelId, listId, emptyId, countId, clearAllId) {
-            const notificationButton = document.getElementById(buttonId);
-            const notificationPanel = document.getElementById(panelId);
-            const notificationList = document.getElementById(listId);
-            const notificationEmpty = document.getElementById(emptyId);
-            const notificationCount = document.getElementById(countId);
-            const clearAllButton = document.getElementById(clearAllId);
-
-            if (!notificationButton) return;
-
-            notificationButton.addEventListener('click', function(event) {
-                event.stopPropagation();
-                const isHidden = notificationPanel.classList.contains('hidden');
-
-                document.querySelectorAll('[id^="notification-panel-"]').forEach(p => p.classList.add('hidden'));
-
-                if (isHidden) {
-                    notificationPanel.classList.remove('hidden');
-                    fetchNotifications();
-                } else {
-                    notificationPanel.classList.add('hidden');
-                }
+                {% endif %}
+            </div>
+            
+            <div id="navbar-links-mobile-content" class="hidden md:hidden bg-white p-4 border-t shadow-lg flex flex-col space-y-3">
+                {% include 'nav_links.html' %}
+            </div>
+        </header>
+        
+        
+        <main class="container mx-auto p-4 flex-grow pt-40 md:pt-28">
+            {# Flash messages display #}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="mb-4">
+                        {% for category, message in messages %}
+                            <div class="p-3 mb-2 rounded-lg text-sm
+                                {% if category == 'success' %} bg-green-100 text-green-700
+                                {% elif category == 'error' or category == 'danger' %} bg-red-100 text-red-700
+                                {% elif category == 'warning' %} bg-yellow-100 text-yellow-700
+                                {% else %} bg-blue-100 text-blue-700
+                                {% endif %}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            {% block content %}{% endblock %}
+        </main>
+        
+        <footer class="bg-gray-800 text-white text-center py-6 mt-12">
+            <p>&copy; 2025 CO Shopping. All rights reserved.</p> {# Changed DRS Shopping to CO #}
+            <p class="text-sm mt-2">Location: Peravurani | Contact: 7418570770, 6374040241</p>
+        </footer>
+        
+        <script>
+            // JavaScript for mobile menu toggle
+            document.getElementById('menu-toggle').addEventListener('click', function() {
+                var mobileMenu = document.getElementById('navbar-links-mobile-content');
+                mobileMenu.classList.toggle('hidden');
             });
-
-            if (clearAllButton) {
-                clearAllButton.addEventListener('click', function(event) {
+        
+            // --- Notification Panel Logic ---
+            function initializeNotificationPanel(buttonId, panelId, listId, emptyId, countId, clearAllId) {
+                const notificationButton = document.getElementById(buttonId);
+                const notificationPanel = document.getElementById(panelId);
+                const notificationList = document.getElementById(listId);
+                const notificationEmpty = document.getElementById(emptyId);
+                const notificationCount = document.getElementById(countId);
+                const clearAllButton = document.getElementById(clearAllId);
+        
+                if (!notificationButton) return;
+        
+                notificationButton.addEventListener('click', function(event) {
                     event.stopPropagation();
-                    fetch('/notifications/clear_all', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                    }).then(response => {
-                        if (response.ok) {
-                            notificationList.innerHTML = ''; // Clear all items
-                            notificationEmpty.classList.remove('hidden');
-                        } else {
-                            console.error('Failed to clear all notifications');
-                        }
-                    });
-                });
-            }
-
-            function fetchNotifications() {
-                fetch('{{ url_for("get_notifications") }}')
-                    .then(response => response.json())
-                    .then(data => {
-                        notificationList.innerHTML = ''; // Clear old notifications
-                        if (data.length === 0) {
-                            notificationEmpty.classList.remove('hidden');
-                        } else {
-                            notificationEmpty.classList.add('hidden');
-                            data.forEach(notif => {
-                                // Main container for the notification item
-                                const container = document.createElement('div');
-                                container.className = 'notification-item flex items-center p-3 hover:bg-gray-100 transition duration-150';
-                                if (!notif.is_read) {
-                                    container.classList.add('unread');
-                                }
-
-                                // Clickable link area
-                                const link = document.createElement('a');
-                                link.href = notif.link_url || '#';
-                                link.className = 'flex-grow';
-
-                                const messageDiv = document.createElement('div');
-                                messageDiv.className = 'text-sm text-gray-800';
-                                messageDiv.textContent = notif.message;
-
-                                const timeDiv = document.createElement('div');
-                                timeDiv.className = 'text-xs text-gray-500 mt-1';
-                                const date = new Date(notif.timestamp);
-                                timeDiv.textContent = date.toLocaleString();
-
-                                link.appendChild(messageDiv);
-                                link.appendChild(timeDiv);
-
-                                // Close button
-                                const closeButton = document.createElement('button');
-                                closeButton.className = 'ml-2 flex-shrink-0 w-6 h-6 text-gray-400 rounded-full flex items-center justify-center focus:outline-none hover:bg-gray-200 hover:text-gray-700 transition-colors';
-                                closeButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>';
-                                closeButton.title = 'Dismiss';
-                                closeButton.dataset.id = notif.id;
-
-                                closeButton.addEventListener('click', function(event) {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    const notificationId = this.dataset.id;
-
-                                    fetch(`/notifications/delete/${notificationId}`, { method: 'POST' })
-                                        .then(response => {
-                                            if (response.ok) {
-                                                container.remove();
-                                                if (notificationList.children.length === 0) {
-                                                    notificationEmpty.classList.remove('hidden');
-                                                }
-                                            } else {
-                                                console.error('Failed to delete notification');
-                                            }
-                                        });
-                                });
-
-                                container.appendChild(link);
-                                container.appendChild(closeButton);
-                                notificationList.appendChild(container);
-                            });
-                        }
-                        if (notificationCount) {
-                            notificationCount.classList.add('hidden');
-                        }
-                    });
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeNotificationPanel('notification-button-desktop', 'notification-panel-desktop', 'notification-list-desktop', 'notification-empty-desktop', 'notification-count-desktop', 'clear-all-desktop');
-            initializeNotificationPanel('notification-button-mobile', 'notification-panel-mobile', 'notification-list-mobile', 'notification-empty-mobile', 'notification-count-mobile', 'clear-all-mobile');
-
-            window.addEventListener('click', function(e) {
-                document.querySelectorAll('[id^="notification-panel-"]').forEach(panel => {
-                    const buttonId = panel.id.replace('panel', 'button');
-                    const button = document.getElementById(buttonId);
-                    if (button && !panel.contains(e.target) && !button.contains(e.target)) {
-                        panel.classList.add('hidden');
+                    const isHidden = notificationPanel.classList.contains('hidden');
+        
+                    document.querySelectorAll('[id^="notification-panel-"]').forEach(p => p.classList.add('hidden'));
+        
+                    if (isHidden) {
+                        notificationPanel.classList.remove('hidden');
+                        fetchNotifications();
+                    } else {
+                        notificationPanel.classList.add('hidden');
                     }
                 });
+        
+                if (clearAllButton) {
+                    clearAllButton.addEventListener('click', function(event) {
+                        event.stopPropagation();
+                        fetch('/notifications/clear_all', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' }
+                        }).then(response => {
+                            if (response.ok) {
+                                notificationList.innerHTML = ''; // Clear all items
+                                notificationEmpty.classList.remove('hidden');
+                            } else {
+                                console.error('Failed to clear all notifications');
+                            }
+                        });
+                    });
+                }
+        
+                function fetchNotifications() {
+                    fetch('{{ url_for("get_notifications") }}')
+                        .then(response => response.json())
+                        .then(data => {
+                            notificationList.innerHTML = ''; // Clear old notifications
+                            if (data.length === 0) {
+                                notificationEmpty.classList.remove('hidden');
+                            } else {
+                                notificationEmpty.classList.add('hidden');
+                                data.forEach(notif => {
+                                    // Main container for the notification item
+                                    const container = document.createElement('div');
+                                    container.className = 'notification-item flex items-center p-3 hover:bg-gray-100 transition duration-150';
+                                    if (!notif.is_read) {
+                                        container.classList.add('unread');
+                                    }
+        
+                                    // Clickable link area
+                                    const link = document.createElement('a');
+                                    link.href = notif.link_url || '#';
+                                    link.className = 'flex-grow';
+        
+                                    const messageDiv = document.createElement('div');
+                                    messageDiv.className = 'text-sm text-gray-800';
+                                    messageDiv.textContent = notif.message;
+        
+                                    const timeDiv = document.createElement('div');
+                                    timeDiv.className = 'text-xs text-gray-500 mt-1';
+                                    const date = new Date(notif.timestamp);
+                                    timeDiv.textContent = date.toLocaleString();
+        
+                                    link.appendChild(messageDiv);
+                                    link.appendChild(timeDiv);
+        
+                                    // Close button
+                                    const closeButton = document.createElement('button');
+                                    closeButton.className = 'ml-2 flex-shrink-0 w-6 h-6 text-gray-400 rounded-full flex items-center justify-center focus:outline-none hover:bg-gray-200 hover:text-gray-700 transition-colors';
+                                    closeButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>';
+                                    closeButton.title = 'Dismiss';
+                                    closeButton.dataset.id = notif.id;
+        
+                                    closeButton.addEventListener('click', function(event) {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        const notificationId = this.dataset.id;
+        
+                                        fetch(`/notifications/delete/${notificationId}`, { method: 'POST' })
+                                            .then(response => {
+                                                if (response.ok) {
+                                                    container.remove();
+                                                    if (notificationList.children.length === 0) {
+                                                        notificationEmpty.classList.remove('hidden');
+                                                    }
+                                                } else {
+                                                    console.error('Failed to delete notification');
+                                                }
+                                            });
+                                    });
+        
+                                    container.appendChild(link);
+                                    container.appendChild(closeButton);
+                                    notificationList.appendChild(container);
+                                });
+                            }
+                            if (notificationCount) {
+                                notificationCount.classList.add('hidden');
+                            }
+                        });
+                }
+            }
+        
+            document.addEventListener('DOMContentLoaded', function() {
+                initializeNotificationPanel('notification-button-desktop', 'notification-panel-desktop', 'notification-list-desktop', 'notification-empty-desktop', 'notification-count-desktop', 'clear-all-desktop');
+                initializeNotificationPanel('notification-button-mobile', 'notification-panel-mobile', 'notification-list-mobile', 'notification-empty-mobile', 'notification-count-mobile', 'clear-all-mobile');
+        
+                window.addEventListener('click', function(e) {
+                    document.querySelectorAll('[id^="notification-panel-"]').forEach(panel => {
+                        const buttonId = panel.id.replace('panel', 'button');
+                        const button = document.getElementById(buttonId);
+                        if (button && !panel.contains(e.target) && !button.contains(e.target)) {
+                            panel.classList.add('hidden');
+                        }
+                    });
+                });
             });
-        });
-    </script>
-</body>
+        </script>
+    </body>
 </html>
