@@ -1737,7 +1737,7 @@ def reset_password(token):
     if user_data:
         if user_data['reset_token'] == token and user_data['reset_token_expires_at']:
             try:
-                expires_at = datetime.fromisoformat(user_data['reset_token_expires_at'])
+                expires_at = datetime.strptime(user_data['reset_token_expires_at'], '%Y-%m-%dT%H:%M:%S.%f')
                 if expires_at > datetime.now():
                     # Corrected: Instantiate the User object with all required data
                     user_for_reset = User(
