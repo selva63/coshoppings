@@ -931,7 +931,7 @@ def admin_dashboard():
             db.name AS delivery_boy_name
         FROM orders o
         JOIN users u ON o.user_id = u.id
-        JOIN addresses a ON o.shipping_address_id = a.id
+        LEFT JOIN addresses a ON o.shipping_address_id = a.id
         LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.id
     '''
 
@@ -1160,7 +1160,7 @@ def admin_add_delivery_boy():
         }
         approved_pincodes_data = db.execute('SELECT pincode FROM approved_pincodes').fetchall()
         approved_pincodes_set = {p['pincode'] for p in approved_pincodes_data}
-        unapproved_pincodes = [p for p in pincodes if p not in approved_pincodes_set]
+        unapproved_pincodes = [p for p in new_pincodes if p not in approved_pincodes_set]
 
         if unapproved_pincodes:
             error_message = f"This pincode(s) {', '.join(unapproved_pincodes)} is not yet added or approved. Please approve it first."
@@ -1386,7 +1386,7 @@ def delivery_boy_dashboard():
         orders_with_items = []
         for order_row in orders_list:
             order = dict(order_row)
-            # UPDATED: Get name directly from order_items table
+            # UPDATED: Use LEFT JOIN to get product info, in case the product was deleted
             order_items = db.execute(
                 '''SELECT oi.quantity, oi.product_name_at_purchase AS name FROM order_items oi
                    WHERE oi.order_id = ?''',
@@ -1401,7 +1401,7 @@ def delivery_boy_dashboard():
             a.full_name AS shipping_name, a.address_line1, a.address_line2, a.city, a.state, a.zip_code,
             db.name AS delivery_boy_name
         FROM orders o
-        JOIN users u ON o.user_id = u.id
+        LEFT JOIN users u ON o.user_id = u.id
         LEFT JOIN addresses a ON o.shipping_address_id = a.id
         LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.id
     '''
