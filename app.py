@@ -1402,7 +1402,7 @@ def delivery_boy_dashboard():
             db.name AS delivery_boy_name
         FROM orders o
         JOIN users u ON o.user_id = u.id
-        JOIN addresses a ON o.shipping_address_id = a.id
+        LEFT JOIN addresses a ON o.shipping_address_id = a.id
         LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.id
     '''
     active_orders_raw = []
