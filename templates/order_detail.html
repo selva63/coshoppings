@@ -145,8 +145,8 @@
                     {% for item in order_items %}
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 flex items-center">
-                            {# UPDATED: Use a fallback for image URL to handle deleted products gracefully #}
-                            <img src="{{ item.image_url if item.image_url else 'https://placehold.co/40x40/CCCCCC/000000?text=No+Img' }}" alt="{{ item.name }}" class="h-10 w-10 rounded-md object-cover mr-3">
+                            <img src="{{ item.image_url }}" alt="{{ item.name }}" class="h-10 w-10 rounded-md object-cover mr-3"
+                                 onerror="this.onerror=null;this.src='https://placehold.co/40x40/CCCCCC/000000?text=No+Img';">
                             {{ item.name }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.quantity }}</td>

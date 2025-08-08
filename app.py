@@ -732,16 +732,13 @@ def checkout_place_order():
         order_items_to_process = [product_data]
         session.pop('buy_now_product', None)
     else:
-        # Fetch detailed product info from the products table for cart items
-        cart_items = db.execute(
-            '''SELECT ci.product_id AS id, p.name, p.price, ci.quantity, p.image_url
+        order_items_to_process = db.execute(
+            '''SELECT ci.product_id AS id, p.name, p.price, ci.quantity
                FROM cart_items ci
                JOIN products p ON ci.product_id = p.id
                WHERE ci.user_id = ?''',
             (user_id,)
         ).fetchall()
-        order_items_to_process = [dict(item) for item in cart_items]
-
 
     if not order_items_to_process:
         flash('Your order is empty. Please add products before checking out.', 'warning')
@@ -773,9 +770,8 @@ def checkout_place_order():
         order_id = cursor.lastrowid
         for item in order_items_to_process:
             db.execute(
-                # UPDATED: Insert product name and image URL into order_items
-                'INSERT INTO order_items (order_id, product_id, quantity, price_at_purchase, product_name_at_purchase, product_image_url_at_purchase) VALUES (?, ?, ?, ?, ?, ?)',
-                (order_id, item['id'], item['quantity'], item['price'], item['name'], item['image_url'])
+                'INSERT INTO order_items (order_id, product_id, quantity, price_at_purchase) VALUES (?, ?, ?, ?)',
+                (order_id, item['id'], item['quantity'], item['price'])
             )
         if not is_buy_now_flow:
             db.execute('DELETE FROM cart_items WHERE user_id = ?', (user_id,))
@@ -826,8 +822,8 @@ def view_orders():
     for order_row in orders_raw:
         order = dict(order_row)
         order_items = db.execute(
-            # UPDATED: Get name and image directly from order_items table
-            '''SELECT oi.quantity, oi.product_name_at_purchase AS name FROM order_items oi
+            '''SELECT p.name, oi.quantity FROM order_items oi
+               JOIN products p ON oi.product_id = p.id
                WHERE oi.order_id = ?''',
             (order['id'],)
         ).fetchall()
@@ -887,9 +883,9 @@ def order_detail(order_id):
             return redirect(url_for('view_orders'))
 
     order_items = db.execute(
-        # UPDATED: Get name and image directly from order_items table
-        '''SELECT oi.quantity, oi.price_at_purchase, oi.product_name_at_purchase AS name, oi.product_image_url_at_purchase AS image_url
+        '''SELECT oi.quantity, oi.price_at_purchase, p.name, p.image_url
            FROM order_items oi
+           JOIN products p ON oi.product_id = p.id
            WHERE oi.order_id = ?''',
         (order_id,)
     ).fetchall()
@@ -914,9 +910,9 @@ def admin_dashboard():
         orders_with_items = []
         for order_row in orders_list:
             order = dict(order_row)
-            # UPDATED: Get name directly from order_items table
             order_items = db.execute(
-                '''SELECT oi.quantity, oi.product_name_at_purchase AS name FROM order_items oi
+                '''SELECT p.name, oi.quantity FROM order_items oi
+                   JOIN products p ON oi.product_id = p.id
                    WHERE oi.order_id = ?''',
                 (order['id'],)
             ).fetchall()
@@ -931,7 +927,7 @@ def admin_dashboard():
             db.name AS delivery_boy_name
         FROM orders o
         JOIN users u ON o.user_id = u.id
-        LEFT JOIN addresses a ON o.shipping_address_id = a.id
+        JOIN addresses a ON o.shipping_address_id = a.id
         LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.id
     '''
 
@@ -1055,8 +1051,6 @@ def admin_edit_product(product_id):
 def admin_delete_product(product_id):
     db = get_db()
     try:
-        # NOTE: Do NOT delete from order_items here to preserve historical order data.
-        # This only deletes the product from the main products table and the cart.
         db.execute('DELETE FROM cart_items WHERE product_id = ?', (product_id,))
         db.execute('DELETE FROM products WHERE id = ?', (product_id,))
         db.commit()
@@ -1160,7 +1154,7 @@ def admin_add_delivery_boy():
         }
         approved_pincodes_data = db.execute('SELECT pincode FROM approved_pincodes').fetchall()
         approved_pincodes_set = {p['pincode'] for p in approved_pincodes_data}
-        unapproved_pincodes = [p for p in new_pincodes if p not in approved_pincodes_set]
+        unapproved_pincodes = [p for p in pincodes if p not in approved_pincodes_set]
 
         if unapproved_pincodes:
             error_message = f"This pincode(s) {', '.join(unapproved_pincodes)} is not yet added or approved. Please approve it first."
@@ -1386,9 +1380,9 @@ def delivery_boy_dashboard():
         orders_with_items = []
         for order_row in orders_list:
             order = dict(order_row)
-            # UPDATED: Use LEFT JOIN to get product info, in case the product was deleted
             order_items = db.execute(
-                '''SELECT oi.quantity, oi.product_name_at_purchase AS name FROM order_items oi
+                '''SELECT p.name, oi.quantity FROM order_items oi
+                   JOIN products p ON oi.product_id = p.id
                    WHERE oi.order_id = ?''',
                 (order['id'],)
             ).fetchall()
@@ -1401,8 +1395,8 @@ def delivery_boy_dashboard():
             a.full_name AS shipping_name, a.address_line1, a.address_line2, a.city, a.state, a.zip_code,
             db.name AS delivery_boy_name
         FROM orders o
-        LEFT JOIN users u ON o.user_id = u.id
-        LEFT JOIN addresses a ON o.shipping_address_id = a.id
+        JOIN users u ON o.user_id = u.id
+        JOIN addresses a ON o.shipping_address_id = a.id
         LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.id
     '''
     active_orders_raw = []
@@ -1805,8 +1799,6 @@ CREATE TABLE IF NOT EXISTS order_items (
     product_id INTEGER NOT NULL,
     quantity INTEGER NOT NULL,
     price_at_purchase REAL NOT NULL,
-    product_name_at_purchase TEXT,
-    product_image_url_at_purchase TEXT,
     FOREIGN KEY (order_id) REFERENCES orders(id),
     FOREIGN KEY (product_id) REFERENCES products(id)
 );
