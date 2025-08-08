@@ -98,7 +98,8 @@
                     {% if order.order_items %}
                         <ul class="list-disc list-inside text-sm text-gray-700 pl-2">
                         {% for item in order.order_items %}
-                            <li>{{ item.name }} (Qty: {{ item.quantity }})</li>
+                            {# UPDATED: Use a fallback for product name if it's missing #}
+                            <li>{{ item.name if item.name else 'Product Deleted' }} (Qty: {{ item.quantity }})</li>
                         {% endfor %}
                         </ul>
                     {% else %} N/A {% endif %}
@@ -123,12 +124,23 @@
                     <div>
                         <p class="text-sm font-medium text-gray-500 mb-1">{{ reason_title if show_reason else "Status" }}</p>
                              {% if show_reason %}
-                                 {% set parts = order.cancellation_reason.split('::') %}
-                                 {% if parts|length > 3 %}
-                                     <p class="text-sm"><strong>By:</strong> {{ parts[1] }} (Delivery Boy)</p>
-                                     <button type="button" class="text-blue-600 text-sm font-semibold hover:underline view-reason-btn mt-1" data-reason="{{ parts[3] }}">View Reason</button>
+                                 {% set reason_text = order.cancellation_reason %}
+                                 {% if reason_text and reason_text.startswith(('Cancelled by Delivery Boy::', 'Left by Delivery Boy::')) %}
+                                     {% set parts = reason_text.split('::') %}
+                                     {% if parts|length > 3 %}
+                                         <p class="text-sm"><strong>By:</strong> {{ parts[1] }} (Delivery Boy)</p>
+                                         <button type="button" class="text-blue-600 text-sm font-semibold hover:underline view-reason-btn mt-1" data-reason="{{ parts[3] }}">
+                                             View Reason
+                                         </button>
+                                     {% else %}
+                                         <button type="button" class="text-blue-600 text-sm font-semibold hover:underline view-reason-btn" data-reason="{{ order.cancellation_reason }}">View Reason</button>
+                                     {% endif %}
+                                 {% elif reason_text and reason_text.startswith('Cancelled by customer: ') %}
+                                     {% set display_reason = reason_text[21:] %}
+                                     <button type="button" class="text-blue-600 text-sm font-semibold hover:underline view-reason-btn" data-reason="{{ display_reason }}">View Reason</button>
                                  {% else %}
-                                     <button type="button" class="text-blue-600 text-sm font-semibold hover:underline view-reason-btn" data-reason="{{ order.cancellation_reason }}">View Reason</button>
+                                     {% set display_reason = reason_text %}
+                                     <button type="button" class="text-blue-600 text-sm font-semibold hover:underline view-reason-btn" data-reason="{{ display_reason or 'No reason provided.' }}">View Reason</button>
                                  {% endif %}
                              {% else %}
                                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
@@ -152,7 +164,8 @@
                     {% if order.order_items %}
                         <ul class="list-disc list-inside">
                         {% for item in order.order_items %}
-                            <li class="truncate">{{ item.name }} (Qty: {{ item.quantity }})</li>
+                            {# UPDATED: Use a fallback for product name if it's missing #}
+                            <li class="truncate">{{ item.name if item.name else 'Product Deleted' }} (Qty: {{ item.quantity }})</li>
                         {% endfor %}
                         </ul>
                     {% else %} N/A {% endif %}

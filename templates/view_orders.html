@@ -30,7 +30,7 @@
                     {% if order.order_items %}
                         <ul class="list-disc list-inside text-sm text-gray-700 pl-2">
                         {% for item in order.order_items %}
-                            <li>{{ item.name }} (Qty: {{ item.quantity }})</li>
+                            <li>{{ item.name if item.name else 'Product Deleted' }} (Qty: {{ item.quantity }})</li>
                         {% endfor %}
                         </ul>
                     {% else %} N/A {% endif %}
@@ -65,7 +65,7 @@
                     {% if order.order_items %}
                         <ul class="list-disc list-inside">
                         {% for item in order.order_items %}
-                            <li class="truncate">{{ item.name }} (Qty: {{ item.quantity }})</li>
+                            <li class="truncate">{{ item.name if item.name else 'Product Deleted' }} (Qty: {{ item.quantity }})</li>
                         {% endfor %}
                         </ul>
                     {% else %} N/A {% endif %}

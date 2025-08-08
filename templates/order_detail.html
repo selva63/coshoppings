@@ -145,9 +145,9 @@
                     {% for item in order_items %}
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 flex items-center">
-                            <img src="{{ item.image_url }}" alt="{{ item.name }}" class="h-10 w-10 rounded-md object-cover mr-3"
-                                 onerror="this.onerror=null;this.src='https://placehold.co/40x40/CCCCCC/000000?text=No+Img';">
-                            {{ item.name }}
+                            {# UPDATED: Check for item.name, if not found, display a placeholder #}
+                            <img src="{{ item.image_url if item.image_url else 'https://placehold.co/40x40/CCCCCC/000000?text=No+Img' }}" alt="{{ item.name if item.name else 'Product Deleted' }}" class="h-10 w-10 rounded-md object-cover mr-3">
+                            {{ item.name if item.name else 'Product Deleted' }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.quantity }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Rs.{{ "%.2f"|format(item.price_at_purchase) }}</td>

@@ -912,7 +912,7 @@ def admin_dashboard():
             order = dict(order_row)
             order_items = db.execute(
                 '''SELECT p.name, oi.quantity FROM order_items oi
-                   JOIN products p ON oi.product_id = p.id
+                   LEFT JOIN products p ON oi.product_id = p.id
                    WHERE oi.order_id = ?''',
                 (order['id'],)
             ).fetchall()
@@ -1051,6 +1051,8 @@ def admin_edit_product(product_id):
 def admin_delete_product(product_id):
     db = get_db()
     try:
+        # NOTE: Do NOT delete from order_items here to preserve historical order data.
+        # This only deletes the product from the main products table and the cart.
         db.execute('DELETE FROM cart_items WHERE product_id = ?', (product_id,))
         db.execute('DELETE FROM products WHERE id = ?', (product_id,))
         db.commit()
@@ -1382,7 +1384,7 @@ def delivery_boy_dashboard():
             order = dict(order_row)
             order_items = db.execute(
                 '''SELECT p.name, oi.quantity FROM order_items oi
-                   JOIN products p ON oi.product_id = p.id
+                   LEFT JOIN products p ON oi.product_id = p.id
                    WHERE oi.order_id = ?''',
                 (order['id'],)
             ).fetchall()
