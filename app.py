@@ -914,8 +914,8 @@ def admin_dashboard():
         orders_with_items = []
         for order_row in orders_list:
             order = dict(order_row)
+            # UPDATED: Get name directly from order_items table
             order_items = db.execute(
-                # UPDATED: Get name and image directly from order_items table
                 '''SELECT oi.quantity, oi.product_name_at_purchase AS name FROM order_items oi
                    WHERE oi.order_id = ?''',
                 (order['id'],)
@@ -1386,7 +1386,7 @@ def delivery_boy_dashboard():
         orders_with_items = []
         for order_row in orders_list:
             order = dict(order_row)
-            # UPDATED: Get product name directly from order_items table
+            # UPDATED: Get name directly from order_items table
             order_items = db.execute(
                 '''SELECT oi.quantity, oi.product_name_at_purchase AS name FROM order_items oi
                    WHERE oi.order_id = ?''',
