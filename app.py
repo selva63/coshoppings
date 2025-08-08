@@ -1,5 +1,3 @@
-# FILENAME : app.py
-
 from flask import Flask, render_template, g, redirect, url_for, request, flash, session, abort, jsonify
 import sqlite3
 import os
@@ -845,13 +843,13 @@ def view_orders():
 def order_detail(order_id):
     db = get_db()
     order_query = '''SELECT o.*,
-                           a.full_name, a.phone_number, a.address_line1, a.address_line2, a.city, a.state, a.zip_code, a.country,
-                           db.name as delivery_boy_name,
-                           db.mobile_number as delivery_boy_phone
-                           FROM orders o
-                           JOIN addresses a ON o.shipping_address_id = a.id
-                           LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.id
-                           WHERE o.id = ?'''
+                          a.full_name, a.phone_number, a.address_line1, a.address_line2, a.city, a.state, a.zip_code, a.country,
+                          db.name as delivery_boy_name,
+                          db.mobile_number as delivery_boy_phone
+                          FROM orders o
+                          JOIN addresses a ON o.shipping_address_id = a.id
+                          LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.id
+                          WHERE o.id = ?'''
     order = db.execute(order_query, (order_id,)).fetchone()
 
     if not order:
@@ -1686,17 +1684,32 @@ def reset_password(token):
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     db = get_db()
-    user_data = db.execute('SELECT id, username, email, reset_token, reset_token_expires_at FROM users WHERE reset_token = ?', (token,)).fetchone()
+    # Corrected: Fetch all columns needed by the User constructor
+    user_data = db.execute(
+        'SELECT id, username, password, is_admin, is_delivery_boy, email, reset_token, reset_token_expires_at FROM users WHERE reset_token = ?',
+        (token,)
+    ).fetchone()
+    
     user_for_reset = None
     if user_data:
         if user_data['reset_token'] == token and user_data['reset_token_expires_at']:
             try:
                 expires_at = datetime.fromisoformat(user_data['reset_token_expires_at'])
                 if expires_at > datetime.now():
-                    user_for_reset = User(user_data['id'], user_data['username'], None, email=user_data['email'])
+                    # Corrected: Instantiate the User object with all required data
+                    user_for_reset = User(
+                        user_data['id'],
+                        user_data['username'],
+                        user_data['password'],
+                        user_data['is_admin'],
+                        user_data['is_delivery_boy'],
+                        user_data['email'],
+                        user_data['reset_token'],
+                        user_data['reset_token_expires_at']
+                    )
                 else:
                     flash('Password reset link has expired. Please request a new one.', 'danger')
-            except ValueError:
+            except (ValueError, TypeError):
                 flash('Invalid reset token or format. Please request a new one.', 'danger')
         else:
             flash('Invalid or expired password reset link.', 'danger')
@@ -1712,6 +1725,7 @@ def reset_password(token):
         if new_password != confirm_password:
             flash('Passwords do not match.', 'danger')
             return render_template('reset_password.html', token=token)
+        
         hashed_password = generate_password_hash(new_password, method='pbkdf2:sha256')
         db.execute('UPDATE users SET password = ?, reset_token = NULL, reset_token_expires_at = NULL WHERE id = ?',
                    (hashed_password, user_for_reset.id))
