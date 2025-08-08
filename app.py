@@ -177,8 +177,6 @@ def init_db():
 
         if not cursor:
             db.execute("INSERT INTO users (username, password, is_admin, is_delivery_boy, email) VALUES (?, ?, ?, ?, ?)", ('admin', hashed_password_for_admin, 1, 0, 'admin@example.com'))
-            db.commit()
-            print(f"Sample 'admin' user created (password: {ADMIN_DEFAULT_PASSWORD}, is_admin: True, email: admin@example.com).")
         elif not cursor['is_admin'] or not cursor['email'] or not check_password_hash(cursor['password'], ADMIN_DEFAULT_PASSWORD):
             update_query = "UPDATE users SET is_admin = 1"
             params = []
@@ -192,11 +190,7 @@ def init_db():
 
             update_query += " WHERE username = 'admin'"
             db.execute(update_query, params)
-            db.commit()
-            print(f"Existing 'admin' user updated (is_admin: True, email added if missing, password updated to {ADMIN_DEFAULT_PASSWORD}).")
-        else:
-            print("Admin user already exists and is an administrator with the correct password.")
-
+        db.commit()
         print("Database initialization complete.")
 
 # Check if file extension is allowed
@@ -1448,7 +1442,7 @@ def take_order(order_id):
     if not order or order['status'] != 'Pending' or order['delivery_boy_id'] is not None:
         flash("Sorry, this order has already been taken or is no longer pending.", 'warning')
         return redirect(url_for('delivery_boy_dashboard'))
-    dboy_rec = db.execute('SELECT id, name FROM delivery_boys WHERE user_id = ?', (current_user.id,)).fetchone()
+    dboy_rec = db.execute('SELECT id, name, mobile_number FROM delivery_boys WHERE user_id = ?', (current_user.id,)).fetchone()
     if not dboy_rec:
         flash('Could not identify your delivery profile.', 'danger')
         return redirect(url_for('delivery_boy_dashboard'))
@@ -1483,11 +1477,10 @@ def update_order_status(order_id):
 def cancel_order_by_dboy(order_id):
     reason = request.form.get('reason')
     if not reason:
-        flash('A reason is required to cancel the order.', 'danger')
-        return redirect(url_for('order_detail', order_id=order_id))
+        reason = "No reason provided."
     db = get_db()
     order = db.execute('SELECT id, user_id, delivery_boy_id FROM orders WHERE id = ?', (order_id,)).fetchone()
-    dboy_rec = db.execute('SELECT id, name FROM delivery_boys WHERE user_id = ?', (current_user.id,)).fetchone()
+    dboy_rec = db.execute('SELECT id, name, mobile_number FROM delivery_boys WHERE user_id = ?', (current_user.id,)).fetchone()
     if not order or not dboy_rec or order['delivery_boy_id'] != dboy_rec['id']:
         flash('You do not have permission to cancel this order.', 'danger')
         return redirect(url_for('delivery_boy_dashboard'))
@@ -1506,11 +1499,10 @@ def cancel_order_by_dboy(order_id):
 def leave_order(order_id):
     reason = request.form.get('reason')
     if not reason:
-        flash('A reason is required to leave the order.', 'danger')
-        return redirect(url_for('order_detail', order_id=order_id))
+        reason = "No reason provided."
     db = get_db()
     order = db.execute('SELECT id, user_id, delivery_boy_id FROM orders WHERE id = ?', (order_id,)).fetchone()
-    dboy_rec = db.execute('SELECT id, name FROM delivery_boys WHERE user_id = ?', (current_user.id,)).fetchone()
+    dboy_rec = db.execute('SELECT id, name, mobile_number FROM delivery_boys WHERE user_id = ?', (current_user.id,)).fetchone()
     if not order or not dboy_rec or order['delivery_boy_id'] != dboy_rec['id']:
         flash('You do not have permission to leave this order.', 'danger')
         return redirect(url_for('delivery_boy_dashboard'))

@@ -19,8 +19,14 @@
             {# Check if it's a delivery boy cancellation with new format #}
             {% if order.cancellation_reason.startswith('Cancelled by Delivery Boy::') %}
                 {% set parts = order.cancellation_reason.split('::') %}
+                {# UPDATED: Check if parts has enough elements before accessing #}
+                {% if parts|length > 3 %}
                 <p class="font-semibold">This order was cancelled by <strong>{{ parts[1] }}</strong>.</p>
                 <p class="text-sm mt-1">Reason: {{ parts[3] }} | Contact: {{ parts[2] }}</p>
+                {% else %}
+                <p class="font-semibold">This order was cancelled by a Delivery Boy.</p>
+                <p class="text-sm mt-1">Reason: {{ order.cancellation_reason }}</p>
+                {% endif %}
             {% else %}
                 {# Fallback for customer cancellation or old format #}
                 <p class="font-semibold">This order was cancelled.</p>
@@ -31,10 +37,13 @@
 
     {% if current_user.is_authenticated and (current_user.id == order.user_id or current_user.is_admin) and order.status == 'Pending' and order.cancellation_reason and order.cancellation_reason.startswith('Left by Delivery Boy::') %}
         {% set parts = order.cancellation_reason.split('::') %}
+        {# UPDATED: Check for sufficient parts before accessing index #}
+        {% if parts|length > 3 %}
         <div class="mb-6 p-4 bg-yellow-100 text-yellow-800 rounded-lg text-center">
             <p class="font-semibold">Delivery partner <strong>{{ parts[1] }}</strong> left this order.</p>
             <p class="text-sm mt-1">Reason: {{ parts[3] }} | Previous Partner Contact: {{ parts[2] }}</p>
         </div>
+        {% endif %}
     {% endif %}
 
 
@@ -78,8 +87,8 @@
                     </button>
                 </form>
             {% elif order.delivery_boy_id == delivery_boy_id and order.status not in ['Delivered', 'Cancelled'] %}
-                   <h3 class="text-xl font-bold text-gray-800 mb-4">Update Order Status</h3>
-                   <form action="{{ url_for('update_order_status', order_id=order.id) }}" method="POST" class="flex items-center justify-center space-x-4">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Update Order Status</h3>
+                    <form action="{{ url_for('update_order_status', order_id=order.id) }}" method="POST" class="flex items-center justify-center space-x-4">
                         <select name="status" class="form-select block w-auto py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                             <option value="Order Picked Up" {% if order.status == 'Order Picked Up' %}selected{% endif %}>Order Picked Up</option>
                             <option value="Product Left from Shop" {% if order.status == 'Product Left from Shop' %}selected{% endif %}>Product Left from Shop</option>
@@ -174,8 +183,8 @@
                     <div class="mt-4">
                         <label for="reason" class="block text-sm font-medium text-gray-700">Reason for this action:</label>
                         <textarea id="reason" name="reason" rows="3" required
-                                     class="mt-1 shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                                     placeholder="Please enter a valid reason..."></textarea>
+                                    class="mt-1 shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                                    placeholder="Please enter a valid reason..."></textarea>
                     </div>
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
