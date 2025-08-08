@@ -732,13 +732,16 @@ def checkout_place_order():
         order_items_to_process = [product_data]
         session.pop('buy_now_product', None)
     else:
-        order_items_to_process = db.execute(
-            '''SELECT ci.product_id AS id, p.name, p.price, ci.quantity
+        # Fetch detailed product info from the products table for cart items
+        cart_items = db.execute(
+            '''SELECT ci.product_id AS id, p.name, p.price, ci.quantity, p.image_url
                FROM cart_items ci
                JOIN products p ON ci.product_id = p.id
                WHERE ci.user_id = ?''',
             (user_id,)
         ).fetchall()
+        order_items_to_process = [dict(item) for item in cart_items]
+
 
     if not order_items_to_process:
         flash('Your order is empty. Please add products before checking out.', 'warning')
@@ -770,8 +773,9 @@ def checkout_place_order():
         order_id = cursor.lastrowid
         for item in order_items_to_process:
             db.execute(
-                'INSERT INTO order_items (order_id, product_id, quantity, price_at_purchase) VALUES (?, ?, ?, ?)',
-                (order_id, item['id'], item['quantity'], item['price'])
+                # UPDATED: Insert product name and image URL into order_items
+                'INSERT INTO order_items (order_id, product_id, quantity, price_at_purchase, product_name_at_purchase, product_image_url_at_purchase) VALUES (?, ?, ?, ?, ?, ?)',
+                (order_id, item['id'], item['quantity'], item['price'], item['name'], item['image_url'])
             )
         if not is_buy_now_flow:
             db.execute('DELETE FROM cart_items WHERE user_id = ?', (user_id,))
@@ -822,8 +826,8 @@ def view_orders():
     for order_row in orders_raw:
         order = dict(order_row)
         order_items = db.execute(
-            '''SELECT p.name, oi.quantity FROM order_items oi
-               JOIN products p ON oi.product_id = p.id
+            # UPDATED: Get name and image directly from order_items table
+            '''SELECT oi.quantity, oi.product_name_at_purchase AS name FROM order_items oi
                WHERE oi.order_id = ?''',
             (order['id'],)
         ).fetchall()
@@ -883,9 +887,9 @@ def order_detail(order_id):
             return redirect(url_for('view_orders'))
 
     order_items = db.execute(
-        '''SELECT oi.quantity, oi.price_at_purchase, p.name, p.image_url
+        # UPDATED: Get name and image directly from order_items table
+        '''SELECT oi.quantity, oi.price_at_purchase, oi.product_name_at_purchase AS name, oi.product_image_url_at_purchase AS image_url
            FROM order_items oi
-           JOIN products p ON oi.product_id = p.id
            WHERE oi.order_id = ?''',
         (order_id,)
     ).fetchall()
@@ -911,8 +915,8 @@ def admin_dashboard():
         for order_row in orders_list:
             order = dict(order_row)
             order_items = db.execute(
-                '''SELECT p.name, oi.quantity FROM order_items oi
-                   LEFT JOIN products p ON oi.product_id = p.id
+                # UPDATED: Get name and image directly from order_items table
+                '''SELECT oi.quantity, oi.product_name_at_purchase AS name FROM order_items oi
                    WHERE oi.order_id = ?''',
                 (order['id'],)
             ).fetchall()
@@ -1382,9 +1386,9 @@ def delivery_boy_dashboard():
         orders_with_items = []
         for order_row in orders_list:
             order = dict(order_row)
+            # UPDATED: Get product name directly from order_items table
             order_items = db.execute(
-                '''SELECT p.name, oi.quantity FROM order_items oi
-                   LEFT JOIN products p ON oi.product_id = p.id
+                '''SELECT oi.quantity, oi.product_name_at_purchase AS name FROM order_items oi
                    WHERE oi.order_id = ?''',
                 (order['id'],)
             ).fetchall()
@@ -1801,6 +1805,8 @@ CREATE TABLE IF NOT EXISTS order_items (
     product_id INTEGER NOT NULL,
     quantity INTEGER NOT NULL,
     price_at_purchase REAL NOT NULL,
+    product_name_at_purchase TEXT,
+    product_image_url_at_purchase TEXT,
     FOREIGN KEY (order_id) REFERENCES orders(id),
     FOREIGN KEY (product_id) REFERENCES products(id)
 );

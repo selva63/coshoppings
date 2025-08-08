@@ -52,8 +52,8 @@
                 <div class="flex justify-between items-start py-2 border-b">
                     <p class="text-sm font-medium text-gray-500">Customer</p>
                     <div class="text-right">
-                        <p class="text-sm font-semibold text-gray-800">{{ order.username }}</p>
-                        {% if order.full_name %}<p class="text-xs text-gray-500">({{ order.full_name }})</p>{% endif %}
+                        <p class="text-sm font-semibold text-gray-800">{{ order.customer_name }}</p>
+                        {% if order.shipping_name %}<p class="text-xs text-gray-500">({{ order.shipping_name }})</p>{% endif %}
                     </div>
                 </div>
                 <div class="py-2 border-b">
@@ -61,7 +61,7 @@
                     {% if order.order_items %}
                         <ul class="list-disc list-inside text-sm text-gray-700 pl-2">
                         {% for item in order.order_items %}
-                            <li>{{ item.name if item.name else 'Product Deleted' }} (Qty: {{ item.quantity }})</li>
+                            <li>{{ item.name }} (Qty: {{ item.quantity }})</li>
                         {% endfor %}
                         </ul>
                     {% else %} N/A {% endif %}
@@ -121,7 +121,7 @@
                     {% if order.order_items %}
                         <ul class="list-disc list-inside">
                         {% for item in order.order_items %}
-                            <li class="truncate">{{ item.name if item.name else 'Product Deleted' }} (Qty: {{ item.quantity }})</li>
+                            <li class="truncate">{{ item.name }} (Qty: {{ item.quantity }})</li>
                         {% endfor %}
                         </ul>
                     {% else %} N/A {% endif %}
@@ -179,11 +179,10 @@
 </div>
 {% endmacro %}
 
-
-{{ render_order_list(active_orders, 'Pending Orders') }}
+{{ render_order_list(ongoing_orders, 'Ongoing Orders') }}
 {{ render_order_list(delivered_orders, 'Delivered Orders') }}
-{{ render_order_list(cancelled_orders, 'My Cancelled Orders', show_reason=True, reason_title="Reason") }}
-{{ render_order_list(leaved_orders, 'My Leaved Orders', show_reason=True, reason_title="Reason") }}
+{{ render_order_list(cancelled_orders, 'Cancelled Orders', show_reason=True, reason_title="Reason for Cancellation") }}
+{{ render_order_list(leaved_orders, 'Leaved Orders', show_reason=True, reason_title="Reason for Leaving") }}
 
 
 <div id="reasonModal" class="fixed z-50 inset-0 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">

@@ -67,6 +67,9 @@ CREATE TABLE IF NOT EXISTS order_items (
     product_id INTEGER NOT NULL,
     quantity INTEGER NOT NULL,
     price_at_purchase REAL NOT NULL,
+    -- NEW: To preserve product details even after product deletion
+    product_name_at_purchase TEXT,
+    product_image_url_at_purchase TEXT,
     FOREIGN KEY (order_id) REFERENCES orders(id),
     FOREIGN KEY (product_id) REFERENCES products(id)
 );
